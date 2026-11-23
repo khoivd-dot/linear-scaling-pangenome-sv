@@ -52,12 +52,16 @@ def path_interval(graph, path_name, chunk_row=None, mapping_row=None):
 def seam_position(left, right):
     """Cut point inside the overlap of two adjacent intervals, or None.
 
-    None means the two chunks do not actually overlap on this haplotype: a
+    Intervals that touch exactly (left ends where right starts, e.g. chunks cut
+    at recombination hotspots with no padding) join at that coordinate: the
+    two pieces already spell the haplotype without a gap or a repeat.
+
+    None means the two chunks neither overlap nor touch on this haplotype: a
     boundary the merge cannot resolve, which the caller must report rather
     than paper over.
     """
     lo, hi = max(left[0], right[0]), min(left[1], right[1])
-    if hi <= lo:
+    if hi < lo:
         return None
     return (lo + hi) // 2
 

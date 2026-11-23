@@ -659,6 +659,9 @@ class TestSlicing:
     def test_seam_none_when_disjoint(self):
         assert seam_position((0, 40), (60, 100)) is None
 
+    def test_seam_at_join_when_touching(self):
+        assert seam_position((0, 60), (60, 100)) == 60
+
     def test_slice_forward_splits_node(self):
         g = GfaGraph.parse("S\ta\tAAAAA\nS\tb\tCCCCC\nP\tp\ta+,b+\t*")
         assert slice_steps(g, g.path_steps("p"), 0, 3, 7) == [
@@ -671,6 +674,31 @@ class TestSlicing:
     def test_path_interval_from_subrange(self):
         _cid, g = _chunk("c1", 40, 100)
         assert path_interval(g, "HG1#1#chr21:40-100") == (40, 100)
+
+
+class TestTouchingChunkStitch:
+    """Chunks cut at a shared coordinate (recombination hotspots) with no overlap."""
+
+    def _merged(self):
+        rows = {"chunk_0001": {"reference_start": "0", "reference_end": "60"},
+                "chunk_0002": {"reference_start": "60", "reference_end": "100"}}
+        return overlap_aware_stitch([_chunk("chunk_0001", 0, 60), _chunk("chunk_0002", 60, 100)],
+                                    chunk_rows=rows)
+
+    def test_paths_spell_whole_region(self):
+        m, _br = self._merged()
+        assert m.get_path_sequence("GRCh38#0#chr21") == REF
+        assert m.get_path_sequence("HG1#1#chr21") == HAP
+
+    def test_boundary_pass_end_to_end(self):
+        _m, br = self._merged()
+        assert br[0]["status"] == "PASS"
+        assert br[0]["reference_overlap_bp"] == 0
+        assert "end to end" in br[0]["message"]
+
+    def test_one_bp_gap_still_fails(self):
+        _m, br = overlap_aware_stitch([_chunk("chunk_0001", 0, 60), _chunk("chunk_0002", 80, 100)])
+        assert br[0]["status"] == "FAIL"
 
 
 class TestOverlapAwareStitch:

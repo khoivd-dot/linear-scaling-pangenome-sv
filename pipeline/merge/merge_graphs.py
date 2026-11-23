@@ -246,17 +246,19 @@ def _boundary_reports(chunk_graphs, groups, gaps, chunk_rows, overlap_bp):
             "haplotypes_unjoined": len(failed),
             "status": "PASS" if joined and not failed else
                       ("FAIL" if failed else "WARN"),
-            "message": _boundary_message(joined, failed),
+            "message": _boundary_message(joined, failed, actual),
         })
     return reports
 
 
-def _boundary_message(joined, failed):
+def _boundary_message(joined, failed, overlap_bp=None):
     if failed:
         names = ", ".join("#".join(k) for k, _l, _r in failed[:3])
         return f"no overlap for {len(failed)} haplotype(s): {names}"
     if not joined:
         return "no haplotype present in both chunks"
+    if overlap_bp == 0:
+        return f"joined {len(joined)} haplotype(s) end to end (chunks touch)"
     return f"stitched {len(joined)} haplotype(s) at overlap midpoint"
 
 
