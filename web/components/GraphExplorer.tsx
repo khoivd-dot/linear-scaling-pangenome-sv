@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import cytoscape, { Core, EventObject } from "cytoscape";
 import type { SampleGraph, GraphNode, GraphEdge, NodeInfo, EdgeInfo } from "../types";
+import { token } from "./token";
 
 interface Props {
   graph: SampleGraph | null;
@@ -59,6 +60,9 @@ export default function GraphExplorer({
     if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; }
     if (!graph || graph.nodes.length === 0) return;
 
+    const c = { other: token("--band"), otherEdge: token("--rule-strong"), shared: token("--shared"),
+      sharedInk: token("--shared-ink"), unique: token("--unique"), uniqueInk: token("--unique-ink"),
+      mark: token("--mark"), line: token("--band") };
     const cy = cytoscape({
       container: containerRef.current,
       elements: buildElements(graph),
@@ -66,38 +70,39 @@ export default function GraphExplorer({
         { selector: "node", style: {
             width: (el: any) => nodeSize(el.data("length")),
             height: (el: any) => nodeSize(el.data("length")),
-            "background-color": "#cbd5e1",
-            "border-width": 1.5, "border-color": "#64748b",
+            "background-color": c.other,
+            "border-width": 1.5, "border-color": c.otherEdge,
             "text-opacity": 0,
         }},
         // Shared across multiple people (green fill)
         { selector: "node.shared", style: {
-            "background-color": "#22c55e", "border-color": "#15803d",
+            "background-color": c.shared, "border-color": c.sharedInk,
         }},
-        // Selected path — strongest emphasis (thick blue border + blue fill if not shared)
-        { selector: "node.selected:not(.shared)", style: {
-            "background-color": "#3b82f6", "border-color": "#1d4ed8", "border-width": 3,
+        // Selected path — strongest emphasis (thick blue border + blue fill if not shared).
+        // Cytoscape rejects :not(.class), so paint blue first and restore green for shared.
+        { selector: "node.selected", style: {
+            "background-color": c.unique, "border-color": c.uniqueInk, "border-width": 3,
         }},
         { selector: "node.selected.shared", style: {
-            "border-color": "#3b82f6", "border-width": 3,
+            "background-color": c.shared, "border-color": c.unique, "border-width": 3,
         }},
         // On actual GRCh38 reference path (marker)
         { selector: "node.reference", style: {
             "border-style": "double",
         }},
         { selector: "node:selected", style: {
-            "border-color": "#f59e0b", "border-width": 4,
+            "border-color": c.mark, "border-width": 4,
         }},
         { selector: "node.highlighted", style: {
-            "border-color": "#f59e0b", "border-width": 4,
+            "border-color": c.mark, "border-width": 4,
         }},
         { selector: "edge", style: {
-            width: 1.5, "line-color": "#cbd5e1", "target-arrow-color": "#cbd5e1",
+            width: 1.5, "line-color": c.line, "target-arrow-color": c.line,
             "target-arrow-shape": "triangle", "arrow-scale": 0.8,
             "curve-style": "bezier",
         }},
         { selector: "edge.onpath", style: {
-            width: 3, "line-color": "#3b82f6", "target-arrow-color": "#3b82f6",
+            width: 3, "line-color": c.unique, "target-arrow-color": c.unique,
         }},
       ],
       // "subway map" layout: reference backbone flows one direction,
@@ -109,7 +114,7 @@ export default function GraphExplorer({
         avoidOverlap: true,
         animate: false,
       },
-      wheelSensitivity: 0.3, minZoom: 0.05, maxZoom: 10,
+      minZoom: 0.05, maxZoom: 10,
     });
     cyRef.current = cy;
 
@@ -157,7 +162,7 @@ export default function GraphExplorer({
       const sc = d.sampleCount || 0;
       setTooltip({
         x: pos.x, y: pos.y,
-        text: `${d.id}\n${kb} Kb · ${sc} samples · ${role}`,
+        text: `${d.id}\n${kb} Kb, ${sc} samples\n${role}`,
       });
     });
     cy.on("mouseout", "node", () => setTooltip(null));
@@ -176,7 +181,8 @@ export default function GraphExplorer({
     const node = cyRef.current.getElementById(searchVal.trim());
     if (node && node.length > 0) {
       node.addClass("highlighted");
-      cyRef.current.animate({ fit: { eles: node, padding: 100 }, duration: 300 });
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      cyRef.current.animate({ fit: { eles: node, padding: 100 }, duration: still ? 0 : 300 });
     }
   };
 
@@ -189,7 +195,7 @@ export default function GraphExplorer({
       <div className="graph-controls">
         <button onClick={fitGraph} className="graph-btn">Fit</button>
         <button onClick={resetGraph} className="graph-btn">Reset</button>
-        <input type="text" placeholder="Search node ID..."
+        <input type="text" placeholder="Search node ID…" aria-label="Search node ID"
           value={searchVal} onChange={e => setSearchVal(e.target.value)}
           onKeyDown={e => e.key === "Enter" && searchNode()}
           className="graph-search-input" />

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, type KeyboardEvent } from "react";
 import type { SampleGraph, NodeInfo, EdgeInfo } from "../types";
 import GraphExplorer from "../components/GraphExplorer";
 import PerfChart from "../components/PerfChart";
@@ -71,6 +71,11 @@ export default function Home() {
       .catch(() => { setSG(null); setLoading(false); });
   }, [basePath, graphMode, selSample, selHap]);
 
+  useEffect(() => {
+    const h = window.location.hash.slice(1);
+    if (["explore", "dashboard", "chunks", "compare", "performance"].includes(h)) setTab(h);
+  }, []);
+
   useEffect(() => { loadGraph(); }, [loadGraph]);
   const loadGraphB = useCallback(() => {
     fetch(`${basePath}/data/graphs/${graphMode}/${selSampleB}_${selHapB}.json`)
@@ -92,23 +97,22 @@ export default function Home() {
   const mm = latest?.metrics?.merged || {};
   const eqVerdict = latest?.equivalence?.verdict || null;
 
-  if (loading) return <div className="container" style={{ padding: 40 }}>Loading…</div>;
+  if (loading) return <div className="container loading">Loading…</div>;
 
   const renderExplore = () => (
     <div className="explorer-wrapper">
       <div className="sidebar">
         <div className="sidebar-section">
-          <h3>What This Graph Shows</h3>
-          <div className="what-graph-card">
-            <p style={{ margin: "0 0 8px", fontSize: 13, lineHeight: 1.6, color: "#1e293b" }}>
+          <h3>What this graph shows</h3>
+          <div className="what-graph">
+            <p>
               A <strong>pangenome graph</strong> of a ~1 Mb slice of chromosome 21.
               Each colored circle is a piece of DNA. Lines show how pieces connect.
             </p>
-            <div className="subway-row"><span className="subway-dot green">●</span> Shared — same across people</div>
-            <div className="subway-row"><span className="subway-dot blue">●</span> Unique — specific to this person</div>
-            <div className="subway-row"><span className="subway-dot gray">●</span> Nearby pieces</div>
-            <div className="subway-divider"></div>
-            <div className="subway-row" style={{ fontSize: 11, color: "#64748b", lineHeight: 1.6 }}>
+            <div className="key-row"><span className="key-dot shared" aria-hidden="true" />Shared: same across people</div>
+            <div className="key-row"><span className="key-dot unique" aria-hidden="true" />Unique: specific to this person</div>
+            <div className="key-row"><span className="key-dot other" aria-hidden="true" />Nearby pieces</div>
+            <div className="key-why">
               <strong>Why it matters:</strong> a pangenome represents many people at once.
               Where the graph <strong>forks</strong>, people differ. Where it <strong>merges</strong>, they match again.
             </div>
@@ -116,50 +120,51 @@ export default function Home() {
         </div>
 
         <div className="sidebar-section">
-          <h3>1. Choose a Graph</h3>
-          <p className="sidebar-note" style={{ marginTop: 0, marginBottom: 8 }}>
+          <h3>1. Choose a graph</h3>
+          <p className="sidebar-note">
             Baseline = built all at once (comparison standard). Stitched = parallel chunks → merged.
           </p>
           {graphNames.map(name => (
-            <button key={name} onClick={() => setGraphMode(name)}
-              className={"graph-mode-btn" + (graphMode === name ? " active" : "")}>
+            <button key={name} onClick={() => setGraphMode(name)} aria-pressed={graphMode === name}
+              className="graph-mode-btn">
               {name === "stitched" ? "Stitched (parallel)" : name === "baseline" ? "Baseline" : name}
             </button>
           ))}
           <div className="graph-mode-explainer">
             {graphMode === "stitched" ? (
               <>
-                <div className="gm-row"><span className="gm-chip">🧩</span> Cut the region into overlapping chunks.</div>
-                <div className="gm-row"><span className="gm-chip">⚙️</span> Build mini-graphs in parallel on DNAnexus.</div>
-                <div className="gm-row"><span className="gm-chip">🪡</span> Stitch chunks together at overlaps.</div>
-                <div className="gm-fast" style={{ marginTop: 6, paddingTop: 6, borderTop: "1px dashed #e2e8f0", fontSize: 12, color: "#92400e" }}>
-                  ⚠️ Chunks produced 0 edges (PGGB needs `-K 19`). Showing baseline for demo.
+                <div className="gm-row"><span className="gm-chip" /> Cut the region into overlapping chunks.</div>
+                <div className="gm-row"><span className="gm-chip" /> Build mini-graphs in parallel on DNAnexus.</div>
+                <div className="gm-row"><span className="gm-chip" /> Stitch chunks together at overlaps.</div>
+                <div className="callout-warn gm-warn">
+                  Chunks produced 0 edges (PGGB needs <code>-K 19</code>). Showing baseline for demo.
                   Real stitched graph pending chunk rebuild.
                 </div>
               </>
             ) : (
               <>
-                <div className="gm-row"><span className="gm-chip">🧬</span> Build the whole region at once with PGGB.</div>
-                <div className="gm-row"><span className="gm-chip">🐢</span> Works for small regions, slow for whole genomes.</div>
-                <div className="gm-row gm-fast"><span className="gm-chip">🎯</span> Comparison standard (not biological truth).</div>
+                <div className="gm-row"><span className="gm-chip" /> Build the whole region at once with PGGB.</div>
+                <div className="gm-row"><span className="gm-chip" /> Works for small regions, slow for whole genomes.</div>
+                <div className="gm-row gm-fast"><span className="gm-chip" /> Comparison standard (not biological truth).</div>
               </>
             )}
           </div>
         </div>
         <div className="sidebar-section">
-          <h3>2. Choose a Person</h3>
-          <p className="sidebar-note" style={{ marginTop: 0, marginBottom: 8 }}>
+          <h3>2. Choose a person</h3>
+          <p className="sidebar-note">
             Green = shared with others. Blue = unique to them.
           </p>
           {samples.map(s => (
             <div key={s.sample}>
               <button onClick={() => { setSelSample(s.sample); setSelHap(s.haplotypes?.[0] || "0"); }}
-                className={"sample-btn" + (selSample === s.sample ? " active" : "")}>{s.sample}</button>
+                aria-pressed={selSample === s.sample}
+                className="sample-btn">{s.sample}</button>
               {selSample === s.sample && (
                 <div className="hap-list">
                   {s.haplotypes.map(h => (
-                    <button key={h} onClick={() => setSelHap(h)}
-                      className={"hap-btn" + (selHap === h ? " active" : "")}>{hapLabels[h] || h}</button>
+                    <button key={h} onClick={() => setSelHap(h)} aria-pressed={selHap === h}
+                      className="hap-btn">{hapLabels[h] || h}</button>
                   ))}
                 </div>
               )}
@@ -172,7 +177,7 @@ export default function Home() {
           onNodeSelect={(i) => { setNodeInfo(i); setEdgeInfo(null); }}
           onEdgeSelect={(e) => { setEdgeInfo(e); setNodeInfo(null); }} />
         {sg && sg.nodes.length <= 3 && graphMode === "baseline" && (
-          <div className="card" style={{ marginTop: 12, fontSize: 13, color: "#475569" }}>
+          <div className="card" style={{ marginTop: 12, fontSize: 15, color: "var(--ink-2)" }}>
             <strong>Heads up:</strong> this view shows only {sg.nodes.length} node{sg.nodes.length===1?"":"s"} because
             {selSample === "GRCh38"
               ? " GRCh38 is stored as one large reference piece in this graph. Try HG00673 or HG00733 to see a richly branched path with shared and unique regions."
@@ -180,9 +185,8 @@ export default function Home() {
           </div>
         )}
       </div>
-      <div className="inspector">
+      <div className="inspector" aria-live="polite">
         <h3>Inspector</h3>
-        <p className="sidebar-note" style={{ marginTop: 0, marginBottom: 8 }}>Click any circle or line to see details.</p>
         {nodeInfo ? <div>
           <div className="inspector-row"><span>DNA piece ID</span><span>{nodeInfo.id}</span></div>
           <div className="inspector-row"><span>Length</span><span>{(nodeInfo.length/1000).toFixed(1)} Kb</span></div>
@@ -192,54 +196,82 @@ export default function Home() {
         </div> : edgeInfo ? <div>
           <div className="inspector-row"><span>Connection</span><span>{edgeInfo.source} → {edgeInfo.target}</span></div>
           <div className="inspector-row"><span>Direction</span><span>{edgeInfo.source_orientation}→{edgeInfo.target_orientation}</span></div>
-        </div> : <div className="inspector-empty">👆 Click a circle or line</div>}
+        </div> : <p className="inspector-empty">Click any circle or line to see details.</p>}
       </div>
     </div>
   );
 
+  const metricRows: [string, string][] = [["Nodes", "nodes"], ["Edges", "edges"], ["Paths", "paths"], ["Components", "components"]];
+
   const renderDashboard = () => (
     <section className="section">
-      <h2>Dashboard</h2>
-      <div className="grid-2">
-        <div className="card"><h3>Baseline</h3>
-          <p>Nodes: {bm.nodes ?? "–"} &nbsp; Edges: {bm.edges ?? "–"}</p>
-          {bm.paths != null && <p>Paths: {bm.paths}</p>}
-        </div>
-        <div className="card"><h3>Merged</h3>
-          <p>Nodes: {mm.nodes ?? "–"} &nbsp; Edges: {mm.edges ?? "–"}</p>
-          {mm.paths != null && <p>Paths: {mm.paths}</p>}
-          {mm.components != null && <p>Components: {mm.components}</p>}
-        </div>
-      </div>
-      <p style={{ marginTop: 12 }}>
+      <h2>Results</h2>
+      <p className="section-lede">
         <span className={"badge " + (latest?.equivalence?.verdict === "EQUIVALENT" ? "badge-ok" : "badge-warn")}>
           EQUIVALENCE: {latest?.equivalence?.verdict || "NOT_RUN"}
         </span>
       </p>
+      <div className="card results-table">
+        <table className="data-table">
+          <thead>
+            <tr><th scope="col">Graph metric</th><th scope="col" className="num">Baseline</th><th scope="col" className="num">Merged</th></tr>
+          </thead>
+          <tbody>
+            {metricRows.filter(([, k]) => bm[k] != null || mm[k] != null).map(([label, k]) => (
+              <tr key={k}><th scope="row">{label}</th><td className="num">{bm[k] ?? "–"}</td><td className="num">{mm[k] ?? "–"}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 
-  const renderChunks = () => (
-    <section className="section">
-      <h2>Chunks</h2>
-      <p>
-        <span className={"badge " + (latest?.stitch?.status === "PASS" ? "badge-ok" : "badge-warn")}>
-          STITCH: {latest?.stitch?.status || "NOT_RUN"}
-        </span>
-      </p>
-      {(overview?.chunks || []).map(c => (
-        <div key={c.chunk_id} className="card" style={{ marginBottom: 8 }}>
-          <strong>{c.chunk_id}</strong>
-          <span style={{ marginLeft: 12, fontSize: 13, color: "#64748b" }}>
-            chr21:{c.reference_start}–{c.reference_end} (core {c.core_start}–{c.core_end})
+  const renderChunks = () => {
+    const chunks = overview?.chunks || [];
+    const lo = Math.min(...chunks.map(c => c.reference_start));
+    const hi = Math.max(...chunks.map(c => c.reference_end));
+    const pct = (bp: number) => `${((bp - lo) / Math.max(hi - lo, 1)) * 100}%`;
+    const span = (a: number, b: number) => ({ left: pct(a), width: `${((b - a) / Math.max(hi - lo, 1)) * 100}%` });
+    return (
+      <section className="section">
+        <h2>Chunks</h2>
+        <p className="section-lede">
+          <span className={"badge " + (latest?.stitch?.status === "PASS" ? "badge-ok" : "badge-warn")}>
+            STITCH: {latest?.stitch?.status || "NOT_RUN"}
           </span>
-        </div>
-      ))}
-      {(latest?.boundaries || []).map(b => (
-        <p key={b.boundary}>{b.boundary}: {b.status} joined={b.haplotypes_joined}</p>
-      ))}
-    </section>
-  );
+        </p>
+        {chunks.length > 0 && (
+          <div className="card">
+            <div className="chunk-legend" aria-hidden="true">
+              <span><span className="swatch swatch-span" /> chunk with overlaps</span>
+              <span><span className="swatch swatch-core" /> core</span>
+            </div>
+            {chunks.map(c => (
+              <div key={c.chunk_id} className="chunk-row">
+                <strong className="chunk-id">{c.chunk_id}</strong>
+                <div>
+                  <div className="chunk-track" aria-hidden="true">
+                    <div className="chunk-span" style={span(c.reference_start, c.reference_end)} />
+                    <div className="chunk-core" style={span(c.core_start, c.core_end)} />
+                  </div>
+                  <span className="chunk-coords">
+                    chr21:{c.reference_start}–{c.reference_end} (core {c.core_start}–{c.core_end})
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {(latest?.boundaries || []).length > 0 && (
+          <div className="card">
+            {(latest?.boundaries || []).map(b => (
+              <p key={b.boundary} className="boundary-row"><span>{b.boundary}: {b.status}</span><span>joined={b.haplotypes_joined}</span></p>
+            ))}
+          </div>
+        )}
+      </section>
+    );
+  };
 
   const renderCompare = () => {
     const hapLabelsB: Record<string, string> = samples.find(s => s.sample === selSampleB)?.hap_labels || {};
@@ -253,42 +285,40 @@ export default function Home() {
 
     return (
       <section className="section">
-        <h2 style={{ fontSize: 24, marginBottom: 8 }}>Compare Two People</h2>
-        <p style={{ color: "#64748b", fontSize: 14, marginTop: 0, marginBottom: 16 }}>
+        <h2>Compare two people</h2>
+        <p className="section-lede">
           Pick two people and see how much of their DNA is shared vs. unique.
         </p>
         <div className="compare-layout">
           <div className="compare-panel">
-            <h4>Sample A</h4>
-            <select value={selSample} onChange={e => { setSelSample(e.target.value); setSelHap(samples.find(s => s.sample === e.target.value)?.haplotypes[0] || "0"); }}
-              style={{ width: "100%", padding: 6, marginBottom: 8, border: "1px solid #cbd5e1", borderRadius: 4 }}>
+            <h3>Sample A</h3>
+            <select aria-label="Sample A" className="select" value={selSample} onChange={e => { setSelSample(e.target.value); setSelHap(samples.find(s => s.sample === e.target.value)?.haplotypes[0] || "0"); }}>
               {samples.map(s => <option key={s.sample} value={s.sample}>{s.sample}</option>)}
             </select>
-            <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+            <div className="hap-row">
               {(samples.find(s => s.sample === selSample)?.haplotypes || []).map(h => (
-                <button key={h} onClick={() => setSelHap(h)}
-                  className={"hap-btn" + (selHap === h ? " active" : "")}>{hapLabels[h] || h}</button>
+                <button key={h} onClick={() => setSelHap(h)} aria-pressed={selHap === h}
+                  className="hap-btn">{hapLabels[h] || h}</button>
               ))}
             </div>
-            {sg && <div className="card">
+            {sg && <div>
               <div className="inspector-row"><span>Path length</span><span>{(sg.path?.length_bp ?? 0).toLocaleString()} bp</span></div>
               <div className="inspector-row"><span>Nodes</span><span>{sg.nodes?.length ?? 0}</span></div>
               <div className="inspector-row"><span>Edges</span><span>{sg.edges?.length ?? 0}</span></div>
             </div>}
           </div>
           <div className="compare-panel">
-            <h4>Sample B</h4>
-            <select value={selSampleB} onChange={e => { setSelSampleB(e.target.value); setSelHapB(samples.find(s => s.sample === e.target.value)?.haplotypes[0] || "0"); }}
-              style={{ width: "100%", padding: 6, marginBottom: 8, border: "1px solid #cbd5e1", borderRadius: 4 }}>
+            <h3>Sample B</h3>
+            <select aria-label="Sample B" className="select" value={selSampleB} onChange={e => { setSelSampleB(e.target.value); setSelHapB(samples.find(s => s.sample === e.target.value)?.haplotypes[0] || "0"); }}>
               {samples.map(s => <option key={s.sample} value={s.sample}>{s.sample}</option>)}
             </select>
-            <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+            <div className="hap-row">
               {(samples.find(s => s.sample === selSampleB)?.haplotypes || []).map(h => (
-                <button key={h} onClick={() => setSelHapB(h)}
-                  className={"hap-btn" + (selHapB === h ? " active" : "")}>{hapLabelsB[h] || h}</button>
+                <button key={h} onClick={() => setSelHapB(h)} aria-pressed={selHapB === h}
+                  className="hap-btn">{hapLabelsB[h] || h}</button>
               ))}
             </div>
-            {sgB && <div className="card">
+            {sgB && <div>
               <div className="inspector-row"><span>Path length</span><span>{(sgB.path?.length_bp ?? 0).toLocaleString()} bp</span></div>
               <div className="inspector-row"><span>Nodes</span><span>{sgB.nodes?.length ?? 0}</span></div>
               <div className="inspector-row"><span>Edges</span><span>{sgB.edges?.length ?? 0}</span></div>
@@ -296,21 +326,21 @@ export default function Home() {
           </div>
         </div>
         {sg && sgB && (
-          <div className="card" style={{ marginTop: 16 }}>
-            <h4 style={{ marginBottom: 4 }}>How They Differ</h4>
-            <p style={{ fontSize: 12, color: "#64748b", marginTop: 0, marginBottom: 12 }}>
+          <div className="card compare-diff" style={{ marginTop: 20 }}>
+            <h3>How they differ</h3>
+            <p className="sidebar-note" style={{ marginBottom: 14 }}>
               Each bar = the DNA pieces that make up that person. Green = pieces they share.
             </p>
             {!sameGraphSpace && (
-              <p style={{ fontSize: 13, color: "#f59e0b", marginBottom: 12 }}>
-                ⚠ These two were built in separate graphs, so the numbers are approximate.
+              <p className="callout-warn" style={{ marginBottom: 14 }}>
+                These two were built in separate graphs, so the numbers are approximate.
               </p>
             )}
-            <div style={{ marginBottom: 14 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
-                <span>Shared</span><span>{shared ?? "—"} pieces ({sharePct ?? "—"}%)</span>
+            <div style={{ marginBottom: 16 }}>
+              <div className="share-head">
+                <span>Shared</span><span className="mono">{shared ?? "—"} pieces ({sharePct ?? "—"}%)</span>
               </div>
-              <div className="share-bar"><div className="share-bar-fill" style={{ width: `${sharePct ?? 0}%` }} /></div>
+              <div className="share-bar"><div className="share-bar-fill" style={{ transform: `scaleX(${(sharePct ?? 0) / 100})` }} /></div>
             </div>
             <div className="inspector-row"><span>Shared DNA pieces</span><span>{shared ?? "—"}</span></div>
             <div className="inspector-row"><span>Only in {selSample}</span><span>{onlyA ?? "—"}</span></div>
@@ -323,152 +353,204 @@ export default function Home() {
 
   const renderPerformance = () => (
     <section className="section">
-      <h2 style={{ fontSize: 24, marginBottom: 4 }}>Performance Scaling</h2>
-      <p style={{ color: "#64748b", fontSize: 14, marginTop: 0, marginBottom: 8 }}>
-        Why does the parallel approach matter? Here's how wall time grows with region size.
+      <h2>Performance scaling</h2>
+      <p className="section-lede">
+        Why does the parallel approach matter? Here&apos;s how wall time grows with region size.
       </p>
-      <div style={{ marginBottom: 24 }}>
+      <div className="chart-frame">
         <PerfChart />
       </div>
-      <div style={{ maxWidth: 740 }}>
-        <div className="card" style={{ background: "#f8fafc" }}>
-          <h4 style={{ marginTop: 0, marginBottom: 8, color: "#1e293b" }}>Why This Matters</h4>
-          <table style={{ width: "100%", fontSize: 13, borderCollapse: "collapse" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid #e2e8f0" }}>
-                <th style={{ textAlign: "left", padding: "6px 8px", color: "#64748b" }}></th>
-                <th style={{ textAlign: "center", padding: "6px 8px", color: "#ef4444" }}>Baseline</th>
-                <th style={{ textAlign: "center", padding: "6px 8px", color: "#22c55e" }}>Stitched</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "6px 8px", fontWeight: 600 }}>Complexity</td>
-                <td style={{ textAlign: "center", padding: "6px 8px" }}>O(L) — linear in region size</td>
-                <td style={{ textAlign: "center", padding: "6px 8px" }}>O(L/k) → O(1) with chunks</td>
-              </tr>
-              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "6px 8px", fontWeight: 600 }}>Scaling</td>
-                <td style={{ textAlign: "center", padding: "6px 8px" }}>Linear growth</td>
-                <td style={{ textAlign: "center", padding: "6px 8px" }}>Near-constant wall time</td>
-              </tr>
-              <tr style={{ borderBottom: "1px solid #f1f5f9" }}>
-                <td style={{ padding: "6px 8px", fontWeight: 600 }}>Memory</td>
-                <td style={{ textAlign: "center", padding: "6px 8px" }}>Hits limit ~5 Mb per machine</td>
-                <td style={{ textAlign: "center", padding: "6px 8px" }}>Unlimited — each chunk fits in RAM</td>
-              </tr>
-              <tr>
-                <td style={{ padding: "6px 8px", fontWeight: 600 }}>10 Mb region</td>
-                <td style={{ textAlign: "center", padding: "6px 8px", color: "#ef4444" }}>~1,000s (exceeds memory)</td>
-                <td style={{ textAlign: "center", padding: "6px 8px", color: "#22c55e" }}>~115s (25 parallel chunks)</td>
-              </tr>
-            </tbody>
-          </table>
+      <div className="perf-wrap">
+        <div className="card">
+          <h3>Why this matters</h3>
+          <div className="table-scroll">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th scope="col"><span className="sr-only">Property</span></th>
+                  <th scope="col" className="c-baseline">Baseline</th>
+                  <th scope="col" className="c-stitched">Stitched</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><th scope="row">Complexity</th><td>O(L) — linear in region size</td><td>O(L/k) → O(1) with chunks</td></tr>
+                <tr><th scope="row">Scaling</th><td>Linear growth</td><td>Near-constant wall time</td></tr>
+                <tr><th scope="row">Memory</th><td>Hits limit ~5 Mb per machine</td><td>Unlimited — each chunk fits in RAM</td></tr>
+                <tr><th scope="row">10 Mb region</th><td className="c-baseline">~1,000s (exceeds memory)</td><td className="c-stitched">~115s (25 parallel chunks)</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-        <div className="card" style={{ marginTop: 12, background: "#fefce8", border: "1px solid #fde047" }}>
-          <p style={{ fontSize: 12, color: "#854d0e", margin: 0, lineHeight: 1.6 }}>
-            <strong>NOTE:</strong> These are theoretical estimates based on PGGB's O(n²×L) all-pairs alignment with n=5 haplotypes. Real DNAnexus timings will replace estimates after chunk rebuild.
-          </p>
+        <div className="callout-warn" style={{ marginTop: 12 }}>
+          <strong>NOTE:</strong> These are theoretical estimates based on PGGB&apos;s O(n²×L) all-pairs alignment with n=5 haplotypes. Real DNAnexus timings will replace estimates after chunk rebuild.
         </div>
       </div>
     </section>
   );
 
+  const tabs = [
+    { key: "explore", label: "Explore", hint: "look at the graph" },
+    { key: "dashboard", label: "Results", hint: "numbers & verdict" },
+    { key: "chunks", label: "Chunks", hint: "the parallel pieces" },
+    { key: "compare", label: "Compare", hint: "two people side by side" },
+    { key: "performance", label: "Speed", hint: "scaling & time complexity" },
+  ];
+
+  const selectTab = (key: string) => {
+    setTab(key);
+    history.replaceState(null, "", `#${key}`);
+  };
+  // WAI-ARIA tabs: arrow keys, Home and End move between tabs.
+  const onTabKey = (e: KeyboardEvent) => {
+    const i = tabs.findIndex(t => t.key === tab);
+    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (next === undefined) return;
+    e.preventDefault();
+    const key = tabs[(next + tabs.length) % tabs.length].key;
+    selectTab(key);
+    document.getElementById(`tab-${key}`)?.focus();
+  };
+
+  // The benchmark region, drawn as a genome-browser ruler with the real chunk layout under it.
+  const REGION = [20_000_000, 21_000_000];
+  const at = (bp: number) => `${((bp - REGION[0]) / (REGION[1] - REGION[0])) * 100}%`;
+  const bar = (a: number, b: number) => ({ left: at(a), width: `${((b - a) / (REGION[1] - REGION[0])) * 100}%` });
+  const heroChunks = overview?.chunks || [];
+
   return (<>
-      {/* ===== HERO — simple language ===== */}
-      <section style={{ background: "linear-gradient(160deg, #0c1929 0%, #1a365d 40%, #2563eb 100%)", color: "#fff", padding: "70px 20px 50px", textAlign: "center" }}>
-        <div style={{ maxWidth: 720, margin: "0 auto" }}>
-          <div style={{ fontSize: 56, marginBottom: 16 }}>🧬</div>
-          <h1 style={{ fontSize: 36, fontWeight: 900, margin: "0 0 12px", lineHeight: 1.3 }}>Can We Build Pangenome Graphs in Parallel?</h1>
-          <p style={{ fontSize: 17, opacity: 0.9, margin: "0 auto 24px", maxWidth: 520, lineHeight: 1.7 }}>Normally, building a pangenome graph requires comparing every genome against every other — very slow. We are testing a new approach: <strong>build small pieces in parallel</strong>, then stitch them back together.</p>
-          <div style={{ display: "flex", justifyContent: "center", gap: 10, flexWrap: "wrap" }}>
-            <span className="badge badge-real">🧬 Real HPRC chr21 1 Mb</span>
-            <span className="badge badge-ok">⏱️ 5.5 min baseline · 1.20× speedup</span>
+      <a className="skip-link" href="#explore-heading">Skip to the graph explorer</a>
+      <header className="hero">
+        <div className="container">
+          <p className="locus">GRCh38 <span className="mono">chr21:20,000,000–21,000,000</span></p>
+          <h1>Can We Build Pangenome Graphs in Parallel?</h1>
+          <p className="hero-lede">Normally, building a pangenome graph requires comparing every genome against every other, which is very slow. We are testing a new approach: <strong>build small pieces in parallel</strong>, then stitch them back together.</p>
+          <a className="hero-action" href="#explore-heading">Explore the graph</a>
+          <div className="tracks" aria-hidden="true">
+            <div className="track">
+              <span className="track-name">chr21</span>
+              <div className="track-body">
+                <div className="ruler">
+                  {[20, 20.2, 20.4, 20.6, 20.8, 21].map(mb => (
+                    <span key={mb} style={{ left: at(mb * 1e6) }}>{mb.toFixed(1)}{mb === 21 ? " Mb" : ""}</span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {heroChunks.length > 0 && (
+              <div className="track">
+                <span className="track-name">chunks</span>
+                <div className="track-body chunk-lane">
+                  {heroChunks.map(c => (
+                    <div key={c.chunk_id}>
+                      <div className="chunk-span" style={bar(c.reference_start, c.reference_end)} />
+                      <div className="chunk-core" style={bar(c.core_start, c.core_end)} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="track">
+              <span className="track-name">graph</span>
+              <div className="track-body"><HeroMotif /></div>
+            </div>
           </div>
-          <div style={{ marginTop: 18, fontSize: 13, opacity: 0.85, maxWidth: 560, marginLeft: "auto", marginRight: "auto", lineHeight: 1.6 }}>
-            <strong>Benchmark region:</strong> GRCh38 chr21:20,000,000–21,000,000 (1 Mb, 5 haplotypes).
+          <dl className="readout">
+            <div><dt>Region</dt><dd>1 Mb <span>real HPRC chr21</span></dd></div>
+            <div><dt>Baseline</dt><dd>5.5 min</dd></div>
+            <div><dt>Speedup</dt><dd>1.20×</dd></div>
+          </dl>
+          <p className="hero-note">
+            <strong>Benchmark region:</strong> GRCh38 <span className="mono">chr21:20,000,000–21,000,000</span> (1 Mb, 5 haplotypes).
             The graph viewer shows a representative high-diversity subsection for clarity;
             timing, equivalence, and variant metrics are calculated across the full 1 Mb.
-          </div>
+          </p>
         </div>
-      </section>
+      </header>
 
-      {/* ===== WHAT IS THIS? ===== */}
-      <section style={{ padding: "50px 20px", background: "#fff", borderBottom: "1px solid #e2e8f0" }}>
-        <div style={{ maxWidth: 760, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 24, textAlign: "center", marginBottom: 32, color: "#1e293b" }}>What Are We Actually Doing?</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 20, fontSize: 14 }}>
-            <div style={{ textAlign: "center", padding: 20, background: "#f0f9ff", borderRadius: 12 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>🧬</div>
-              <h4 style={{ margin: "0 0 8px", color: "#1e293b" }}>Genomes</h4>
-              <p style={{ color: "#475569", lineHeight: 1.6, margin: 0 }}>Each person has unique DNA. We compare 5 versions: one reference + 4 from real people.</p>
+      <main>
+      <section className="band band-white">
+        <div className="container">
+          <div className="band-head"><h2>What are we actually doing?</h2></div>
+          <div className="concepts">
+            <div className="concept">
+              <h3>Genomes</h3>
+              <p>Each person has unique DNA. We compare 5 versions: one reference + 4 from real people.</p>
             </div>
-            <div style={{ textAlign: "center", padding: 20, background: "#f0fdf4", borderRadius: 12 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>🕸️</div>
-              <h4 style={{ margin: "0 0 8px", color: "#1e293b" }}>Pangenome Graph</h4>
-              <p style={{ color: "#475569", lineHeight: 1.6, margin: 0 }}>Instead of comparing to one reference, a graph shows where genomes share the same route and where they take different paths.</p>
+            <div className="concept">
+              <h3>Pangenome graph</h3>
+              <p>Instead of comparing to one reference, a graph shows where genomes share the same route and where they take different paths.</p>
             </div>
-            <div style={{ textAlign: "center", padding: 20, background: "#fff7ed", borderRadius: 12 }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>⚡</div>
-              <h4 style={{ margin: "0 0 8px", color: "#1e293b" }}>Our Idea</h4>
-              <p style={{ color: "#475569", lineHeight: 1.6, margin: 0 }}>Split the genome into pieces, build each piece in parallel, then stitch together. Much faster.</p>
+            <div className="concept">
+              <h3>Our idea</h3>
+              <p>Split the genome into pieces, build each piece in parallel, then stitch them back together.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ===== HOW IT WORKS ===== */}
-      <section style={{ padding: "60px 20px", background: "#f8fafc" }}>
-        <div style={{ maxWidth: 900, margin: "0 auto" }}>
-          <h2 style={{ fontSize: 24, textAlign: "center", marginBottom: 8, color: "#1e293b" }}>How It Works — Five Steps</h2>
-          <p style={{ textAlign: "center", color: "#64748b", marginBottom: 36, fontSize: 15 }}>Explained in plain English.</p>
-          <div className="steps-grid">
-            <PlainStep emoji="📍" title="Pick a Region" desc="We focus on a tiny slice of chromosome 21 — just 1 million DNA letters. Small enough to test fast, big enough to matter." />
-            <PlainStep emoji="🗺️" title="Line Everyone Up" desc="We find where each person's DNA matches our reference — like aligning everyone to the same starting line." />
-            <PlainStep emoji="✂️" title="Split and Build" desc="We cut the region into overlapping 400 Kb chunks and build a little graph for each. All chunks run at the same time." />
-            <PlainStep emoji="🪡" title="Stitch Together" desc="Our algorithm finds the overlapping edges between chunks and joins them — like connecting puzzle pieces." />
-            <PlainStep emoji="✅" title="Check Our Work" desc={`We compare against building the whole thing in one go (no splitting). Result: ${eqVerdict==="EQUIVALENT"?"they match! 🎉":"testing now"}`} />
+      <section className="band">
+        <div className="container">
+          <div className="band-head">
+            <h2>How it works, in five steps</h2>
           </div>
+          <ol className="steps-grid">
+            <PlainStep title="Pick a region" desc="We focus on a tiny slice of chromosome 21: just 1 million DNA letters. Small enough to test fast, big enough to matter." />
+            <PlainStep title="Line everyone up" desc="We find where each person's DNA matches our reference, like aligning everyone to the same starting line." />
+            <PlainStep title="Split and build" desc="We cut the region into overlapping 400 Kb chunks and build a little graph for each. All chunks run at the same time." />
+            <PlainStep title="Stitch together" desc="Our algorithm finds the overlapping edges between chunks and joins them, like connecting puzzle pieces." />
+            <PlainStep title="Check our work" desc={`We compare against building the whole thing in one go (no splitting). Result: ${eqVerdict==="EQUIVALENT"?"they match!":"testing now"}`} />
+          </ol>
         </div>
       </section>
 
-      <div className="container" style={{ padding: "32px 20px 0" }}>
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <h2 style={{ fontSize: 22, marginBottom: 4, color: "#1e293b" }}>Explore the Graph Yourself</h2>
-          <p style={{ fontSize: 14, color: "#64748b", margin: 0 }}>Use the tabs below to dig in.</p>
+      <section className="container explore-band" aria-labelledby="explore-heading">
+        <div className="band-head">
+          <h2 id="explore-heading" tabIndex={-1}>Explore the graph yourself</h2>
+          <p>Use the tabs below to dig in.</p>
         </div>
-        <div style={{ display: "flex", gap: 4, marginBottom: 16, justifyContent: "center", flexWrap: "wrap" }}>
-        {[
-          { key: "explore", label: "🧬 Explore", hint: "look at the graph" },
-          { key: "dashboard", label: "📊 Results", hint: "numbers & verdict" },
-          { key: "chunks", label: "🧩 Chunks", hint: "the parallel pieces" },
-          { key: "compare", label: "⚖️ Compare", hint: "two people side by side" },
-          { key: "performance", label: "⏱️ Speed", hint: "scaling & time complexity" },
-        ].map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)} title={t.hint}
-            className={"graph-btn" + (tab === t.key ? " active" : "")}
-            style={{ padding: "10px 18px", fontSize: 14 }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-      {tab === "explore" && renderExplore()}
-      {tab === "dashboard" && renderDashboard()}
-      {tab === "chunks" && renderChunks()}
-      {tab === "compare" && renderCompare()}
-      {tab === "performance" && renderPerformance()}
-    </div>
+        <div className="tabs" role="tablist" aria-label="Views" onKeyDown={onTabKey}>
+          {tabs.map(t => (
+            <button key={t.key} id={`tab-${t.key}`} role="tab" aria-selected={tab === t.key} aria-controls="tab-panel"
+              tabIndex={tab === t.key ? 0 : -1} onClick={() => selectTab(t.key)} title={t.hint} className="tab">
+              <span className="tab-label">{t.label}</span>
+              <span className="tab-hint">{t.hint}</span>
+            </button>
+          ))}
+        </div>
+        <div id="tab-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
+          {tab === "explore" && renderExplore()}
+          {tab === "dashboard" && renderDashboard()}
+          {tab === "chunks" && renderChunks()}
+          {tab === "compare" && renderCompare()}
+          {tab === "performance" && renderPerformance()}
+        </div>
+      </section>
+      </main>
   </>);
 }
 
-function PlainStep({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
+function PlainStep({ title, desc }: { title: string; desc: string }) {
   return (
-    <div style={{ background: "#fff", borderRadius: 12, padding: 24, border: "1px solid #e2e8f0", display: "flex", gap: 14, alignItems: "flex-start", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
-      <span style={{ fontSize: 28, flexShrink: 0, lineHeight: 1 }}>{emoji}</span>
-      <div>
-        <h4 style={{ margin: "0 0 4px", fontSize: 15, color: "#1e293b" }}>{title}</h4>
-        <p style={{ margin: 0, fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>{desc}</p>
-      </div>
-    </div>
+    <li className="step">
+      <h3>{title}</h3>
+      <p>{desc}</p>
+    </li>
+  );
+}
+
+// Decorative sketch: a shared backbone (green) with a branch where one haplotype differs (blue).
+// Drawn in percentages so it spans the track at any width without stretching the nodes.
+function HeroMotif() {
+  return (
+    <svg className="hero-motif" aria-hidden="true" focusable="false">
+      <svg x="36%" width="28%" height="64" viewBox="0 0 100 64" preserveAspectRatio="none">
+        <path className="motif-unique" d="M0 46 C 25 46, 25 14, 50 14 S 75 46, 100 46" strokeWidth="3" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <line className="motif-shared" x1="1%" y1="46" x2="99%" y2="46" strokeWidth="4" strokeLinecap="round" />
+      {[2, 19, 36, 64, 81, 98].map(x => <circle key={x} className="motif-node-shared" cx={`${x}%`} cy="46" r="6" strokeWidth="2" />)}
+      {[43, 50, 57].map(x => <circle key={x} className="motif-node-unique" cx={`${x}%`} cy={x === 50 ? 14 : 30} r="5.5" strokeWidth="2" />)}
+      <text className="motif-label-shared" x="20%" y="32">shared</text>
+      <text className="motif-label-unique" x="59%" y="14">unique</text>
+    </svg>
   );
 }
