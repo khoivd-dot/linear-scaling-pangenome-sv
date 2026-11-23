@@ -35,6 +35,22 @@ Facts checked on 2026-11-23 that matter for the pipeline:
 - The repo's 1 Mb pilot region, chr21:20,000,000-21,000,000, is covered by 20 blocks
   (`blocks/chr21_pilot_20-21Mb.txt`).
 
+## Measured here first (4 vCPU, 15 GB, pinned PGGB v0.6.0, 2026-11-23)
+
+Block chr22:44,303,006-44,307,622 (4.6 kb), `-s 1000`, seeded haplotype subsets:
+
+| Haplotypes | Sequences into PGGB | Wall time | Nodes | Edges |
+|---:|---:|---:|---:|---:|
+| 128 | 128 | 94 s | 130 | 172 |
+| 128, deduplicated | 42 | 26 s | 130 | 172 |
+| 512 | 512 | 345 s | 130 | 173 |
+| 512, deduplicated | 89 | 68 s | 130 | 173 |
+| 5,096 (all), deduplicated | 318 | 210 s | 130 | 173 |
+
+Collapsing identical sequences gave the same node and edge counts at 3.5x to 5.1x less wall
+time. The job container also ran end to end on chr22:27,020,234-27,031,341 (11 kb), fetched
+over HTTPS: 256 haplotypes became 108 sequences, PGGB took 87 s and peaked at 185 MB.
+
 ## Run it
 
 Needs the AWS CLI v2 with credentials for your account, and Docker.
