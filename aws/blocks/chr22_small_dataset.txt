@@ -1,0 +1,12 @@
+https://data.haploblocks.org/chr22_small_dataset/chr22_23507389-23529638_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_26245115-26270093_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_27020234-27031341_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_27396539-27435114_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_30383333-30440683_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_33827023-33873503_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_36238986-36271022_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_37075250-37101553_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_44303006-44307622_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_44791710-44821141_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_46418842-46438932_all_seqs.fasta
+https://data.haploblocks.org/chr22_small_dataset/chr22_49264062-49281800_all_seqs.fasta
