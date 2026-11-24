@@ -1,0 +1,62 @@
+name: Experiment
+# Long benchmark runs on a GitHub runner instead of a cloud session (Tier 3 scripts, docs/TIER3.md).
+# Start it from the Actions tab (Run workflow) on any pushed branch; results come back as an artifact.
+# The Tier 3 scripts were written for the cloud machine's paths, so the job recreates them:
+# /home/user/linear-scaling-pangenome-sv -> this checkout, /home/user/work -> scratch on the runner.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "What to run"
+        type: choice
+        options: [tier3-e1e2, tier3-e4, tier3-scaling]
+        default: tier3-e1e2
+      reps:
+        description: "Replicates (tier3-e1e2 only)"
+        default: "1"
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      HTTPS_PROXY: ""
+      PY: /home/user/work/venv/bin/python
+    steps:
+      - uses: actions/checkout@v4
+      - name: Paths, Python tools and the pinned PGGB image
+        run: |
+          sudo mkdir -p /home/user/work /root/.ccr && sudo chown -R $USER /home/user
+          ln -s "$GITHUB_WORKSPACE" /home/user/linear-scaling-pangenome-sv
+          sudo cp /etc/ssl/certs/ca-certificates.crt /root/.ccr/ca-bundle.crt && sudo chmod 755 /root /root/.ccr
+          python3 -m venv /home/user/work/venv
+          /home/user/work/venv/bin/pip install -q mappy pysam "truvari==5.5.0" pyyaml
+          mkdir -p /home/user/work/bin && cp pipeline/benchmark/tier3/shims/* /home/user/work/bin/
+          sed -i '1s|.*|#!/home/user/work/venv/bin/python|' /home/user/work/bin/*
+          pip install -q pyyaml
+          docker pull ghcr.io/pangenome/pggb@sha256:44f3563c5c3e2032c293fe309eed178b754021b07963ca4857e4ae5efda86474
+      - name: Run
+        run: |
+          export PATH=/home/user/work/bin:$PATH
+          T=pipeline/benchmark/tier3
+          case "${{ inputs.stage }}" in
+            tier3-e1e2|tier3-e4)
+              bash $T/setup_inputs.sh
+              bash $T/run_truth.sh
+              if [ "${{ inputs.stage }}" = tier3-e1e2 ]; then REPS=${{ inputs.reps }} bash $T/run_e1e2.sh; else bash $T/run_e4.sh; fi ;;
+            tier3-scaling)
+              bash $T/setup_inputs.sh   # region FASTA and chr21 manifests
+              bash $T/scaling_select.sh
+              bash $T/scaling_rep2.sh fetch && bash $T/scaling_rep2.sh project && bash $T/scaling_rep2.sh build ;;
+          esac
+      - name: Collect results
+        if: always()
+        run: |
+          cd /home/user/work
+          find . \( -name '*.json' -o -name '*.log' -o -name '*.tsv' \) -not -path './venv/*' -not -path '*/_work/*' -size -5M \
+            | tar czf $GITHUB_WORKSPACE/results.tgz -T -
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experiment-${{ inputs.stage }}
+          path: results.tgz
