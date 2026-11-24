@@ -186,7 +186,7 @@ else
 fi
 echo "  equivalence: NOT_RUN (requires real baseline + real stitched graph)"
 echo "  overall_status: PARTIAL"
-echo "  (Overlap-aware stitch implemented and synthetic-validated. Real HPRC validation pending.)"
+echo "  (Stitch validated on HPRC release 2, chr21:20-21 Mb: see docs/TIER1_CONTROLS.md, docs/TIER2.md.)"
 echo ""
 echo "  Baseline: $BASELINE_GFA"
 echo "  Merged: ${MERGED_GFA:-N/A}"

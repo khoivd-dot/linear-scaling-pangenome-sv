@@ -47,8 +47,10 @@ def main():
     cfg = yaml.safe_load(open("config/pipeline.yaml"))
     t = cfg["target"]
     p = cfg["parallel"]
+    # CHUNK_SIZE_BP / CHUNK_OVERLAP_BP override the config (scripts/run_smoke_test.sh)
     chunks = create_chunks(t["chromosome"], t["start"], t["end"],
-                           p["chunk_size_bp"], p["overlap_bp"])
+                           int(os.environ.get("CHUNK_SIZE_BP") or p["chunk_size_bp"]),
+                           int(os.environ.get("CHUNK_OVERLAP_BP") or p["overlap_bp"]))
     os.makedirs("work/chunks", exist_ok=True)
     write_manifest(chunks, "work/chunks/chunk_manifest.tsv")
     print(f"{len(chunks)} chunks -> work/chunks/chunk_manifest.tsv")
