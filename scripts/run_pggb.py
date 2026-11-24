@@ -63,6 +63,15 @@ def main():
 
     num_paths = sum(1 for line in open(input_fa) if line.startswith(">"))
 
+    # Experiment-only override of seqwish's transitive-closure batch (pggb -B).
+    # pggb v0.6.0 passes its default "10M" to the bundled seqwish
+    # (v0.7.11-35-gaab5bee), which reads it as 1,000,000; with 1 Mb batches that
+    # seqwish drops alignments across batch edges and leaves inputs over 1 Mb
+    # under-collapsed. A plain number larger than the input avoids it.
+    transclose_batch = os.environ.get("PGGB_TRANSCLOSE_BATCH", "")
+    if transclose_batch and not transclose_batch.isdigit():
+        sys.exit("FATAL: PGGB_TRANSCLOSE_BATCH must be a plain number of bp (no K/M suffix)")
+
     # Build canonical PGGB command — identical parameters to the applets.
     cmd = [
         "docker", "run", "--rm",
@@ -81,7 +90,8 @@ def main():
         "-K {mash_kmer} "
         "-k {match_length} "
         "-j {path_jump_max} "
-        "-e {edge_jump_max}".format(
+        "-e {edge_jump_max}{batch}".format(
+            batch=f" -B {transclose_batch}" if transclose_batch else "",
             input_file=os.path.basename(input_fa),
             threads=cfg["threads"],
             num_paths=num_paths,
@@ -152,6 +162,7 @@ def main():
             "match_length": cfg["match_length"],
             "path_jump_max": cfg["path_jump_max"],
             "edge_jump_max": cfg["edge_jump_max"],
+            **({"transclose_batch": int(transclose_batch)} if transclose_batch else {}),
         },
     }
     meta_path = os.path.join(outdir, "run_metadata.json")
