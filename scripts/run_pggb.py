@@ -38,6 +38,16 @@ def find_final_gfa(outdir):
     return str(gfaf[0])
 
 
+def read_time_v(path):
+    """CPU seconds and peak RSS from GNU time -v (peak = largest single process)."""
+    if not os.path.exists(path):
+        return {}
+    v = dict(l.strip().rsplit(": ", 1) for l in open(path) if ": " in l)
+    cpu = float(v.get("User time (seconds)", 0)) + float(v.get("System time (seconds)", 0))
+    return {"cpu_seconds": round(cpu, 1),
+            "peak_rss_mb": round(int(v.get("Maximum resident set size (kbytes)", 0)) / 1024, 1)}
+
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python3 scripts/run_pggb.py input.fa output_dir [threads]")
@@ -60,7 +70,8 @@ def main():
         "-v", f"{outdir}:/data/output",
         cfg["image"],
         "bash", "-lc",
-        "samtools faidx /data/input/{input_file} && pggb "
+        "samtools faidx /data/input/{input_file} && "
+        "/usr/bin/time -v -o /data/output/time_v.txt pggb "
         "-i /data/input/{input_file} "
         "-o /data/output "
         "-t {threads} "
@@ -118,6 +129,7 @@ def main():
     print(f"  Final GFA: {canonical} ({gfa_size} bytes)")
 
     metadata = {
+        **read_time_v(os.path.join(outdir, "time_v.txt")),
         "method": "pggb",
         "container": cfg["image"],
         "image_tag": cfg["image_tag"],

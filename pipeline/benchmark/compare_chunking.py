@@ -51,12 +51,17 @@ def variants(gfa, region_start):
                           f"vg deconstruct -P GRCh38 -a /g/{name} 2>/dev/null"],
                          check=True, capture_output=True, text=True).stdout
     calls = set()
+    vcf = open(os.path.splitext(gfa)[0] + ".vcf", "w")  # chromosome coordinates, for truvari
     for line in out.splitlines():
         if line.startswith("#"):
+            if not line.startswith("##contig"):
+                vcf.write(line + "\n")
             continue
         f = line.split("\t")
+        vcf.write("\t".join(["chr21", str(int(f[1]) + region_start)] + f[2:]) + "\n")
         for alt in f[4].split(","):
             calls.add((int(f[1]) + region_start, f[3], alt))
+    vcf.close()
     return calls
 
 
@@ -97,6 +102,7 @@ def main(argv=None):
     ap.add_argument("--region-start", type=int, default=20000000)
     ap.add_argument("--skip-variants", action="store_true")
     a = ap.parse_args(argv)
+    a.workdir = os.path.abspath(a.workdir)  # run_pggb.py runs with cwd=ROOT
     os.makedirs(a.workdir, exist_ok=True)
 
     mono_gfa, mono_wall = build(os.path.abspath(a.mono), os.path.join(a.workdir, "monolithic"), a.threads)
