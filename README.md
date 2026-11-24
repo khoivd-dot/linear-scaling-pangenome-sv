@@ -1,7 +1,7 @@
 
 # Parallel Pangenome Graph Construction (Linear Scaling SV)
 
-[![Tests](https://img.shields.io/badge/tests-173%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-196%20passed-brightgreen)](tests/)
 [![Website](https://img.shields.io/badge/website-live-blue)](https://web-lemon-zeta-40.vercel.app)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-2ea44f)](https://collaborativebioinformatics.github.io/linear-scaling-pangenome-sv/)
 [![DNAnexus](https://img.shields.io/badge/DNAnexus-Group11__2026-orange)]()
@@ -20,7 +20,7 @@ cd linear-scaling-pangenome-sv
 pip install pyyaml pytest
 make check           # Verify your environment
 make demo            # Build synthetic graphs, stitch, export web data
-make test            # 173 tests
+make test            # 196 tests
 make web             # Open http://localhost:3000
 ```
 
@@ -50,33 +50,29 @@ Visit **[web-lemon-zeta-40.vercel.app](https://web-lemon-zeta-40.vercel.app)** t
 | **Chunk status** | ⚠️ Fix in progress — wfmash two-pass issue for small windows |
 | **Stitch / Truvari** | Pending valid chunk GFAs |
 
-## 🧪 Chunking experiments (Nov 2026, fork)
+---
 
-Follow-up work on where to cut and what it costs, run in a 4 vCPU cloud
-container with PGGB v0.6.0 (pinned image). Each write-up has its numbers,
-limits and the commands to reproduce it.
+## 🔬 Where to Cut: Chunking Experiments (Nov 2026)
 
-| Write-up | Question | Answer |
-|----------|----------|--------|
-| [RECOMBINATION_CHUNKS.md](docs/RECOMBINATION_CHUNKS.md) | Do chunks cut at recombination hotspots match the monolithic graph better than fixed windows? | Looked that way in the pilot, but the windows overlapped by 50 kb and the hotspot chunks did not |
-| [TIER1_CONTROLS.md](docs/TIER1_CONTROLS.md) | Was the gain from hotspots or from dropping the overlap? | The overlap. Zero-overlap cuts are clean wherever they fall; hotspots sit at the median of 20 random cut sets. PGGB is not deterministic run to run, so every comparison needs replicates |
-| [TIER2.md](docs/TIER2.md) | Does that hold with 40 haplotypes and in segmental duplications? | Seams stay clean to 40 HPRC haplotypes and hotspots still never beat fixed cuts. At 40 haplotypes, three chunks use the same CPU as monolithic and stay near 970 MB each (monolithic: 2.3 GB). In 17q21.31 and 22q11.2, chunks keep paralogous LCR copies apart (+6.5% sequence, F1 0.78-0.88 vs monolithic) |
+These runs ask whether the place you cut a region changes the stitched graph. All are on the 4 vCPU cloud container with the pinned PGGB v0.6.0 image, real HPRC release 2 assemblies, and GRCh38 chr21:20-21 Mb unless noted. Full write-ups are in `docs/`.
 
-**Fixed along the way:**
+| Step | Question | Finding | Write-up |
+|------|----------|---------|----------|
+| Pilot | Do cuts at recombination hotspots (haploblocks.org) beat fixed 400 kb windows? | Hotspot chunks looked closer to monolithic (+14 bp of node sequence vs +4,723 bp) | [RECOMBINATION_CHUNKS.md](docs/RECOMBINATION_CHUNKS.md) |
+| Tier 1 | Was that the hotspots, or the 50 kb overlap the windows had? | The overlap. Zero-overlap cuts anywhere (fixed, shifted or 20 random sets) leave no extra sequence at the seams, and hotspot cuts score at the random median (F1 0.9985 vs 0.9984). | [TIER1_CONTROLS.md](docs/TIER1_CONTROLS.md) |
+| Tier 2 | Does that hold at more haplotypes and in segmental duplications? | Seams stay clean up to 40 haplotypes and fixed windows still match or beat hotspots. In 17q21.31 and 22q11.2, chunked graphs carry about 6.5% more sequence because paralogous copies land in different chunks. | [TIER2.md](docs/TIER2.md) |
 
-- **seqwish `-B`.** PGGB v0.6.0 passes its default `-B 10M` to the bundled
-  seqwish unconverted. seqwish reads it as 1,000,000 bp, and its batched
-  transitive closure then drops merges across batch edges. Any input with a
-  sequence longer than about 1 Mb came out under-collapsed. `pggb.params.transclose_batch`
-  (100,000,000 bp) is now passed by every runner. The 1 Mb chr21 results
-  above are unaffected.
-- **Projection in segmental duplications.**
-  `pipeline/prepare/project_chunks.py` now projects through the longest
-  colinear alignment chain instead of a greedy one, which had locked onto
-  wrong LCR copies in 22q11.2.
-- **Overlap.** Zero overlap (`parallel.overlap_bp: 0`, end-to-end join) is
-  the setting these results support. The 50 kb default added 4,723 bp at the
-  seams.
+What to take from it:
+
+- **Cut without overlap.** Chunks that touch end to end stitch cleanly (`seam_position` joins touching intervals, and `project_chunks.py` projects each cut onto every haplotype so neighbours meet exactly). A few hundred kb per chunk is the useful size; at 50-270 kb each PGGB run is mostly fixed cost.
+- **Where you cut matters less than we expected.** Recombination hotspots have not beaten fixed zero-overlap cuts in any comparison so far. The next idea to test is cutting outside segmental duplications.
+- **Chunking pays off around 40 haplotypes.** At N = 40 three chunks use the same total CPU as monolithic (1,790 vs 1,775 s), the longest chunk finishes in 40% of the monolithic wall time, and peak memory stays near 970 MB per chunk against 2.3 GB monolithic.
+- **Replicate everything.** The pinned PGGB image is not deterministic: two monolithic builds of the same input differ by up to 9 nodes and 47 bp, which is the size of most effects above.
+- **seqwish bug, fixed here.** PGGB v0.6.0 passes its default `-B 10M` to seqwish unparsed, so any input sequence over about 1 Mb comes out under-collapsed (22q11.2: 12.3 Mb of node sequence instead of 4.3 Mb). `config/pipeline.yaml` now sets `transclose_batch: 100000000` and every runner passes it; set `PGGB_TRANSCLOSE_BATCH=pggb-default` to get the old behaviour. The 1 Mb chr21 results are not affected.
+
+### haploblocks.org data and the AWS kit
+
+[data.haploblocks.org](https://data.haploblocks.org) splits each 1000 Genomes chromosome (2,548 samples, 5,096 haplotypes) into blocks between recombination hotspots. The sequences are VCF-derived consensus, so they carry few SVs, but many haplotypes in a block are identical. `pipeline/haploblocks/prepare_block.py --dedupe` keeps one copy of each, which on a 4.6 kb chr22 block cut 5,096 haplotypes to 318 sequences and gave the same graph 3.5-5x faster. Blocks this short need `-s 1000` (`config/haploblocks.yaml`); the default `-s 5000` fails below 5 kb. `aws/` holds an AWS Batch (Spot) stack that runs one block per array task; see [aws/README.md](aws/README.md) for the steps and cost controls.
 
 ---
 
@@ -181,11 +177,12 @@ HPRC Release 2 (4 haplotypes + GRCh38)
 |-----------|--------|-------|
 | GFA data model | ✅ | Header, Segment, Link, Path, Walk (official W-line, no step_count) |
 | GFA parser | ✅ | Parse, dump, roundtrip, file I/O |
-| Chunking | ✅ | Overlapping chunks, configurable pairwise overlap |
+| Chunking | ✅ | Overlapping chunks, configurable pairwise overlap; zero-overlap hotspot chunks (`hotspot_chunks.py`) |
+| Per-haplotype cut projection | ✅ | `project_chunks.py`: chained minimap2 alignment, same cut on every haplotype |
 | Merge (disjoint union) | ✅ | Namespace-safe concatenation, diagnostic only |
 | Overlap-aware stitch | ✅ | `overlap_aware_stitch()`; `make demo` EQUIVALENT, 5 components |
 | Synthetic demo | ✅ | `make demo` generates full vertical slice |
-| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, chunk cuts and projection — 196 pass |
+| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks — 196 pass |
 | Web explorer | ✅ Interactive | Cytoscape.js graph, sample/haplotype selector, inspector, 4 tabs, real JSON loading |
 | Web dataset export | ✅ | `pipeline/export/build_web_dataset.py` — GFA → bounded compact JSON (no sequences) |
 | Web JSON guard | ✅ | `guard_no_genomic()` blocks GFA/FASTA/VCF/BAM/CRAM; `WEB_MAX_FILE_MB` size guard |
@@ -281,7 +278,8 @@ files ever reach the browser.
 | parallel.chunk_size_bp | config/pipeline.yaml | 400000 | Chunk size in bp |
 | parallel.overlap_bp | config/pipeline.yaml | 50000 | Pairwise overlap between chunks |
 | pggb.threads | config/pipeline.yaml | 8 | PGGB thread count |
-| pggb.params.transclose_batch | config/pipeline.yaml | 100000000 | seqwish transitive-closure batch in bp; must be a plain number above the total input size (see docs/TIER2.md) |
+| pggb.params.transclose_batch | config/pipeline.yaml | 100000000 | seqwish `-B`; must exceed the total input bp (see docs/TIER2.md) |
+| pggb.params.segment_length | config/haploblocks.yaml | 1000 | `-s` for haploblocks.org blocks, which can be under 5 kb |
 
 ## What To Do Next (Pre-Submission)
 
@@ -393,6 +391,13 @@ pangenome-parallel/
 |-- pipeline/merge/merge_graphs.py  # Merge strategies
 |-- pipeline/parallel/make_chunks.py  # Overlapping chunk creation
 |-- pipeline/parallel/build_all_chunks.py  # Chunk FASTA builder
+|-- pipeline/parallel/hotspot_chunks.py  # Zero-overlap chunks cut at recombination hotspots
+|-- pipeline/prepare/project_chunks.py  # Project reference cuts onto each haplotype
+|-- pipeline/haploblocks/prepare_block.py  # haploblocks.org block -> PanSN FASTA, optional dedupe
+|-- pipeline/benchmark/compare_chunking.py  # Monolithic vs chunked: topology, paths, variants
+|-- pipeline/benchmark/seam_metrics.py  # Extra sequence and errors by distance to a cut
+|-- pipeline/benchmark/tier2/      # Tier 2 scaling, hard-region and map scripts
+|-- aws/                          # AWS Batch kit for haploblocks.org blocks
 |-- pipeline/baseline/build_baseline.sh  # Monolithic PGGB via Docker
 |-- pipeline/prepare/faidx_utils.py  # samtools interval extraction
 |-- pipeline/prepare/map_chromosome.py  # minimap2 interval mapping
@@ -405,9 +410,9 @@ pangenome-parallel/
 |-- scripts/prepare_reference.sh  # GRCh38 chr21 from DNAnexus/NCBI
 |-- scripts/setup_demo.py        # Synthetic end-to-end demo
 |-- scripts/check_environment.sh  # Tiered environment checker
-|-- tests/                       # 167 tests, pytest
+|-- tests/                       # 196 tests, pytest
 |-- web/                         # Next.js + React + TypeScript
-|-- docs/                        # Architecture, methods, DNAnexus
+|-- docs/                        # Architecture, methods, DNAnexus, chunking experiments
 ```
 
 ## License
