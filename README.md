@@ -50,6 +50,34 @@ Visit **[web-lemon-zeta-40.vercel.app](https://web-lemon-zeta-40.vercel.app)** t
 | **Chunk status** | ⚠️ Fix in progress — wfmash two-pass issue for small windows |
 | **Stitch / Truvari** | Pending valid chunk GFAs |
 
+## 🧪 Chunking experiments (Nov 2026, fork)
+
+Follow-up work on where to cut and what it costs, run in a 4 vCPU cloud
+container with PGGB v0.6.0 (pinned image). Each write-up has its numbers,
+limits and the commands to reproduce it.
+
+| Write-up | Question | Answer |
+|----------|----------|--------|
+| [RECOMBINATION_CHUNKS.md](docs/RECOMBINATION_CHUNKS.md) | Do chunks cut at recombination hotspots match the monolithic graph better than fixed windows? | Looked that way in the pilot, but the windows overlapped by 50 kb and the hotspot chunks did not |
+| [TIER1_CONTROLS.md](docs/TIER1_CONTROLS.md) | Was the gain from hotspots or from dropping the overlap? | The overlap. Zero-overlap cuts are clean wherever they fall; hotspots sit at the median of 20 random cut sets. PGGB is not deterministic run to run, so every comparison needs replicates |
+| [TIER2.md](docs/TIER2.md) | Does that hold with 40 haplotypes and in segmental duplications? | Seams stay clean to 40 HPRC haplotypes and hotspots still never beat fixed cuts. At 40 haplotypes, three chunks use the same CPU as monolithic and stay near 970 MB each (monolithic: 2.3 GB). In 17q21.31 and 22q11.2, chunks keep paralogous LCR copies apart (+6.5% sequence, F1 0.78-0.88 vs monolithic) |
+
+**Fixed along the way:**
+
+- **seqwish `-B`.** PGGB v0.6.0 passes its default `-B 10M` to the bundled
+  seqwish unconverted. seqwish reads it as 1,000,000 bp, and its batched
+  transitive closure then drops merges across batch edges. Any input with a
+  sequence longer than about 1 Mb came out under-collapsed. `pggb.params.transclose_batch`
+  (100,000,000 bp) is now passed by every runner. The 1 Mb chr21 results
+  above are unaffected.
+- **Projection in segmental duplications.**
+  `pipeline/prepare/project_chunks.py` now projects through the longest
+  colinear alignment chain instead of a greedy one, which had locked onto
+  wrong LCR copies in 22q11.2.
+- **Overlap.** Zero overlap (`parallel.overlap_bp: 0`, end-to-end join) is
+  the setting these results support. The 50 kb default added 4,723 bp at the
+  seams.
+
 ---
 
 ## 🏗️ Full Pipeline
@@ -157,7 +185,7 @@ HPRC Release 2 (4 haplotypes + GRCh38)
 | Merge (disjoint union) | ✅ | Namespace-safe concatenation, diagnostic only |
 | Overlap-aware stitch | ✅ | `overlap_aware_stitch()`; `make demo` EQUIVALENT, 5 components |
 | Synthetic demo | ✅ | `make demo` generates full vertical slice |
-| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats — 167 pass, 2 skip |
+| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, chunk cuts and projection — 196 pass |
 | Web explorer | ✅ Interactive | Cytoscape.js graph, sample/haplotype selector, inspector, 4 tabs, real JSON loading |
 | Web dataset export | ✅ | `pipeline/export/build_web_dataset.py` — GFA → bounded compact JSON (no sequences) |
 | Web JSON guard | ✅ | `guard_no_genomic()` blocks GFA/FASTA/VCF/BAM/CRAM; `WEB_MAX_FILE_MB` size guard |
@@ -253,6 +281,7 @@ files ever reach the browser.
 | parallel.chunk_size_bp | config/pipeline.yaml | 400000 | Chunk size in bp |
 | parallel.overlap_bp | config/pipeline.yaml | 50000 | Pairwise overlap between chunks |
 | pggb.threads | config/pipeline.yaml | 8 | PGGB thread count |
+| pggb.params.transclose_batch | config/pipeline.yaml | 100000000 | seqwish transitive-closure batch in bp; must be a plain number above the total input size (see docs/TIER2.md) |
 
 ## What To Do Next (Pre-Submission)
 
