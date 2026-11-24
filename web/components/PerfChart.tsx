@@ -192,7 +192,7 @@ export default function PerfChart() {
       ctx.fillStyle = col.muted;
       ctx.font = "11px " + FONT;
       ctx.fillText(
-        "5 haplotypes, PGGB v0.6.0, all-pairs alignment O(n\u00b2\u00d7L) \u2192 O(L) for n=5, 400 Kb chunks",
+        "5 haplotypes, PGGB v0.6.0, all-pairs alignment O(n\u00b2\u00d7L) \u2192 O(L) for n=5, modelled with 400 Kb chunks",
         W / 2, H - 8
       );
     }

@@ -3,8 +3,8 @@
     "graph": "baseline",
     "sample": "GRCh38",
     "haplotype": "0",
-    "path_name": "GRCh38#0#chr21",
-    "step_count": 6885,
+    "path_name": "GRCh38#0#chr21:20000000-21000000",
+    "step_count": 6886,
     "length_bp": 1000000,
     "gfa_source": "results/baseline/baseline.gfa"
   },
@@ -12,8 +12,8 @@
     "graph": "baseline",
     "sample": "HG00673",
     "haplotype": "1",
-    "path_name": "HG00673#1#JAHBBZ020000061.1",
-    "step_count": 6911,
+    "path_name": "HG00673#1#JAHBBZ020000061.1:13927880-14929618",
+    "step_count": 6917,
     "length_bp": 1001738,
     "gfa_source": "results/baseline/baseline.gfa"
   },
@@ -21,8 +21,8 @@
     "graph": "baseline",
     "sample": "HG00673",
     "haplotype": "2",
-    "path_name": "HG00673#2#JAHBBY020000010.1",
-    "step_count": 6958,
+    "path_name": "HG00673#2#JAHBBY020000010.1:10139485-11141152",
+    "step_count": 6964,
     "length_bp": 1001667,
     "gfa_source": "results/baseline/baseline.gfa"
   },
@@ -30,8 +30,8 @@
     "graph": "baseline",
     "sample": "HG00733",
     "haplotype": "1",
-    "path_name": "HG00733#1#JAHEPQ020000018.1",
-    "step_count": 6973,
+    "path_name": "HG00733#1#JAHEPQ020000018.1:12533293-13534879",
+    "step_count": 6979,
     "length_bp": 1001586,
     "gfa_source": "results/baseline/baseline.gfa"
   },
@@ -39,8 +39,8 @@
     "graph": "baseline",
     "sample": "HG00733",
     "haplotype": "2",
-    "path_name": "HG00733#2#JAHEPP020000058.1",
-    "step_count": 7003,
+    "path_name": "HG00733#2#JAHEPP020000058.1:12572500-13574242",
+    "step_count": 7009,
     "length_bp": 1001742,
     "gfa_source": "results/baseline/baseline.gfa"
   },
@@ -49,7 +49,7 @@
     "sample": "GRCh38",
     "haplotype": "0",
     "path_name": "GRCh38#0#chr21",
-    "step_count": 6885,
+    "step_count": 6889,
     "length_bp": 1000000,
     "gfa_source": "results/merge/merged.gfa"
   },
@@ -58,7 +58,7 @@
     "sample": "HG00673",
     "haplotype": "1",
     "path_name": "HG00673#1#JAHBBZ020000061.1",
-    "step_count": 6911,
+    "step_count": 6915,
     "length_bp": 1001738,
     "gfa_source": "results/merge/merged.gfa"
   },
@@ -67,7 +67,7 @@
     "sample": "HG00673",
     "haplotype": "2",
     "path_name": "HG00673#2#JAHBBY020000010.1",
-    "step_count": 6958,
+    "step_count": 6963,
     "length_bp": 1001667,
     "gfa_source": "results/merge/merged.gfa"
   },
@@ -76,7 +76,7 @@
     "sample": "HG00733",
     "haplotype": "1",
     "path_name": "HG00733#1#JAHEPQ020000018.1",
-    "step_count": 6973,
+    "step_count": 6977,
     "length_bp": 1001586,
     "gfa_source": "results/merge/merged.gfa"
   },
@@ -85,7 +85,7 @@
     "sample": "HG00733",
     "haplotype": "2",
     "path_name": "HG00733#2#JAHEPP020000058.1",
-    "step_count": 7003,
+    "step_count": 7006,
     "length_bp": 1001742,
     "gfa_source": "results/merge/merged.gfa"
   }

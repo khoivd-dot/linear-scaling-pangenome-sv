@@ -99,8 +99,12 @@ class TestDemoWiring:
         assert "Strategy:" in src
 
     def test_setup_demo_prints_strategy_and_equivalent(self, tmp_path, monkeypatch):
+        # Run in a scratch dir: setup_demo writes results/merge/*.gfa and
+        # web/public/data/latest.json, which would overwrite the real data.
         root = os.path.join(os.path.dirname(__file__), "..")
-        monkeypatch.chdir(root)
+        import shutil
+        shutil.copytree(os.path.join(root, "config"), tmp_path / "config")
+        monkeypatch.chdir(tmp_path)
         from scripts.setup_demo import main
         main()
         merged = GfaGraph.parse_file("work/demo/merged.gfa")
