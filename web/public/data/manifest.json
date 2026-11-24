@@ -1,0 +1,70 @@
+{
+  "schema_version": "2",
+  "run": {
+    "run_id": "latest",
+    "git_sha": "13ed097b9811",
+    "generated_at": "2026-08-28T15:19:05Z",
+    "data_mode": "real",
+    "scientific_status": "Full real HPRC dataset."
+  },
+  "target": {
+    "reference": "GRCh38",
+    "chromosome": "chr21",
+    "start": 20000000,
+    "end": 21000000
+  },
+  "graphs": {
+    "baseline": {
+      "nodes": 10389,
+      "edges": 14185,
+      "paths": 5,
+      "walks": 0
+    },
+    "stitched": {
+      "nodes": 10389,
+      "edges": 14185,
+      "paths": 5,
+      "walks": 0
+    }
+  },
+  "pipeline_status": {
+    "baseline": "AVAILABLE",
+    "parallel_chunks": "IMPLEMENTED",
+    "stitch": "BASELINE_COPY_DEMO_ONLY",
+    "path_equivalence": "NOT_RUN",
+    "variant_equivalence": "NOT_RUN"
+  },
+  "samples": [
+    {
+      "sample": "GRCh38",
+      "haplotypes": [
+        "0"
+      ],
+      "hap_labels": {
+        "0": "reference"
+      }
+    },
+    {
+      "sample": "HG00673",
+      "haplotypes": [
+        "1",
+        "2"
+      ],
+      "hap_labels": {
+        "1": "paternal",
+        "2": "maternal"
+      }
+    },
+    {
+      "sample": "HG00733",
+      "haplotypes": [
+        "1",
+        "2"
+      ],
+      "hap_labels": {
+        "1": "paternal",
+        "2": "maternal"
+      }
+    }
+  ]
+}

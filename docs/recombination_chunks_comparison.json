@@ -1,0 +1,366 @@
+{
+  "pggb_params": {
+    "image_tag": "v0.6.0",
+    "threads": 8,
+    "minimum_identity": 90,
+    "segment_length": 5000,
+    "mash_kmer": 19,
+    "match_length": 29,
+    "path_jump_max": 0,
+    "edge_jump_max": 0
+  },
+  "threads_per_build": 4,
+  "monolithic": {
+    "wall_s": 141.6,
+    "label": "monolithic",
+    "nodes": 10382,
+    "edges": 14176,
+    "node_lengths": {
+      "total_bp": 1006549,
+      "n50": 588
+    },
+    "components": {
+      "count": 1,
+      "largest": 10382,
+      "largest_fraction": 1.0
+    },
+    "degrees": {
+      "branching_nodes": 3846,
+      "max_out_degree": 5,
+      "max_in_degree": 4,
+      "tip_nodes": 2,
+      "unique_edges": 14176,
+      "dangling_links": 0
+    },
+    "paths": 5,
+    "walks": 0,
+    "path_steps": {
+      "count": 5,
+      "total_steps": 34698,
+      "per_path": {
+        "GRCh38#0#chr21:20000000-21000000": 6879,
+        "HG00673#1#JAHBBZ020000061.1:13927880-14929618": 6903,
+        "HG00673#2#JAHBBY020000010.1:10139485-11141152": 6952,
+        "HG00733#1#JAHEPQ020000018.1:12533293-13534879": 6967,
+        "HG00733#2#JAHEPP020000058.1:12572500-13574242": 6997
+      }
+    },
+    "complexity": {
+      "edge_node_ratio": 1.3654,
+      "branching_fraction": 0.3704
+    },
+    "total_bp": 1006549,
+    "samples": [
+      "GRCh38",
+      "HG00673",
+      "HG00733"
+    ],
+    "variants": {
+      "snv": 2861,
+      "indel_or_mnp": 869,
+      "sv_50bp+": 24
+    }
+  },
+  "windows": {
+    "chunks": 3,
+    "chunk_bp": [
+      425000,
+      450000,
+      225000
+    ],
+    "chunk_wall_s": {
+      "chunk_0001": 100.0,
+      "chunk_0002": 97.7,
+      "chunk_0003": 79.2
+    },
+    "sum_wall_s": 276.9,
+    "max_chunk_wall_s": 100.0,
+    "boundaries_pass": 2,
+    "boundaries": 2,
+    "haplotypes_identical_to_monolithic": 5,
+    "haplotypes": 5,
+    "label": "windows",
+    "nodes": 10396,
+    "edges": 14195,
+    "node_lengths": {
+      "total_bp": 1011272,
+      "n50": 591
+    },
+    "components": {
+      "count": 1,
+      "largest": 10396,
+      "largest_fraction": 1.0
+    },
+    "degrees": {
+      "branching_nodes": 3852,
+      "max_out_degree": 5,
+      "max_in_degree": 4,
+      "tip_nodes": 2,
+      "unique_edges": 14195,
+      "dangling_links": 0
+    },
+    "paths": 5,
+    "walks": 0,
+    "path_steps": {
+      "count": 5,
+      "total_steps": 34723,
+      "per_path": {
+        "GRCh38#0#chr21": 6884,
+        "HG00673#1#JAHBBZ020000061.1": 6908,
+        "HG00673#2#JAHBBY020000010.1": 6957,
+        "HG00733#1#JAHEPQ020000018.1": 6972,
+        "HG00733#2#JAHEPP020000058.1": 7002
+      }
+    },
+    "complexity": {
+      "edge_node_ratio": 1.3654,
+      "branching_fraction": 0.3705
+    },
+    "total_bp": 1011272,
+    "samples": [
+      "GRCh38",
+      "HG00673",
+      "HG00733"
+    ],
+    "variants_vs_monolithic": {
+      "truth": 3754,
+      "test": 3755,
+      "tp": 3745,
+      "precision": 0.9973,
+      "recall": 0.9976,
+      "f1": 0.9975
+    },
+    "variants_by_class": {
+      "indel_or_mnp": {
+        "truth": 869,
+        "test": 870,
+        "tp": 863,
+        "precision": 0.992,
+        "recall": 0.9931,
+        "f1": 0.9925
+      },
+      "snv": {
+        "truth": 2861,
+        "test": 2861,
+        "tp": 2858,
+        "precision": 0.999,
+        "recall": 0.999,
+        "f1": 0.999
+      },
+      "sv_50bp+": {
+        "truth": 24,
+        "test": 24,
+        "tp": 24,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    }
+  },
+  "hotspots": {
+    "chunks": 10,
+    "chunk_bp": [
+      271080,
+      76588,
+      58018,
+      103153,
+      74320,
+      66942,
+      51156,
+      93808,
+      104758,
+      100177
+    ],
+    "chunk_wall_s": {
+      "chunk_0001": 87.3,
+      "chunk_0002": 70.0,
+      "chunk_0003": 67.9,
+      "chunk_0004": 74.8,
+      "chunk_0005": 69.9,
+      "chunk_0006": 59.7,
+      "chunk_0007": 69.2,
+      "chunk_0008": 70.8,
+      "chunk_0009": 72.2,
+      "chunk_0010": 71.0
+    },
+    "sum_wall_s": 712.8,
+    "max_chunk_wall_s": 87.3,
+    "boundaries_pass": 9,
+    "boundaries": 9,
+    "haplotypes_identical_to_monolithic": 5,
+    "haplotypes": 5,
+    "label": "hotspots",
+    "nodes": 10406,
+    "edges": 14207,
+    "node_lengths": {
+      "total_bp": 1006553,
+      "n50": 588
+    },
+    "components": {
+      "count": 1,
+      "largest": 10406,
+      "largest_fraction": 1.0
+    },
+    "degrees": {
+      "branching_nodes": 3861,
+      "max_out_degree": 5,
+      "max_in_degree": 4,
+      "tip_nodes": 2,
+      "unique_edges": 14207,
+      "dangling_links": 0
+    },
+    "paths": 5,
+    "walks": 0,
+    "path_steps": {
+      "count": 5,
+      "total_steps": 34785,
+      "per_path": {
+        "GRCh38#0#chr21": 6892,
+        "HG00673#1#JAHBBZ020000061.1": 6923,
+        "HG00673#2#JAHBBY020000010.1": 6970,
+        "HG00733#1#JAHEPQ020000018.1": 6985,
+        "HG00733#2#JAHEPP020000058.1": 7015
+      }
+    },
+    "complexity": {
+      "edge_node_ratio": 1.3653,
+      "branching_fraction": 0.371
+    },
+    "total_bp": 1006553,
+    "samples": [
+      "GRCh38",
+      "HG00673",
+      "HG00733"
+    ],
+    "variants_vs_monolithic": {
+      "truth": 3754,
+      "test": 3758,
+      "tp": 3749,
+      "precision": 0.9976,
+      "recall": 0.9987,
+      "f1": 0.9981
+    },
+    "variants_by_class": {
+      "indel_or_mnp": {
+        "truth": 869,
+        "test": 871,
+        "tp": 867,
+        "precision": 0.9954,
+        "recall": 0.9977,
+        "f1": 0.9966
+      },
+      "snv": {
+        "truth": 2861,
+        "test": 2863,
+        "tp": 2861,
+        "precision": 0.9993,
+        "recall": 1.0,
+        "f1": 0.9997
+      },
+      "sv_50bp+": {
+        "truth": 24,
+        "test": 24,
+        "tp": 21,
+        "precision": 0.875,
+        "recall": 0.875,
+        "f1": 0.875
+      }
+    }
+  },
+  "hotspots300k": {
+    "chunks": 3,
+    "chunk_bp": [
+      347668,
+      302433,
+      349899
+    ],
+    "chunk_wall_s": {
+      "chunk_0001": 94.9,
+      "chunk_0002": 87.9,
+      "chunk_0003": 91.8
+    },
+    "sum_wall_s": 274.6,
+    "max_chunk_wall_s": 94.9,
+    "boundaries_pass": 2,
+    "boundaries": 2,
+    "haplotypes_identical_to_monolithic": 5,
+    "haplotypes": 5,
+    "label": "hotspots300k",
+    "nodes": 10387,
+    "edges": 14182,
+    "node_lengths": {
+      "total_bp": 1006563,
+      "n50": 588
+    },
+    "components": {
+      "count": 1,
+      "largest": 10387,
+      "largest_fraction": 1.0
+    },
+    "degrees": {
+      "branching_nodes": 3850,
+      "max_out_degree": 5,
+      "max_in_degree": 4,
+      "tip_nodes": 2,
+      "unique_edges": 14182,
+      "dangling_links": 0
+    },
+    "paths": 5,
+    "walks": 0,
+    "path_steps": {
+      "count": 5,
+      "total_steps": 34710,
+      "per_path": {
+        "GRCh38#0#chr21": 6883,
+        "HG00673#1#JAHBBZ020000061.1": 6905,
+        "HG00673#2#JAHBBY020000010.1": 6955,
+        "HG00733#1#JAHEPQ020000018.1": 6969,
+        "HG00733#2#JAHEPP020000058.1": 6998
+      }
+    },
+    "complexity": {
+      "edge_node_ratio": 1.3654,
+      "branching_fraction": 0.3707
+    },
+    "total_bp": 1006563,
+    "samples": [
+      "GRCh38",
+      "HG00673",
+      "HG00733"
+    ],
+    "variants_vs_monolithic": {
+      "truth": 3754,
+      "test": 3756,
+      "tp": 3747,
+      "precision": 0.9976,
+      "recall": 0.9981,
+      "f1": 0.9979
+    },
+    "variants_by_class": {
+      "indel_or_mnp": {
+        "truth": 869,
+        "test": 870,
+        "tp": 863,
+        "precision": 0.992,
+        "recall": 0.9931,
+        "f1": 0.9925
+      },
+      "snv": {
+        "truth": 2861,
+        "test": 2862,
+        "tp": 2860,
+        "precision": 0.9993,
+        "recall": 0.9997,
+        "f1": 0.9995
+      },
+      "sv_50bp+": {
+        "truth": 24,
+        "test": 24,
+        "tp": 24,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    }
+  }
+}

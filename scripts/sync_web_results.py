@@ -15,9 +15,12 @@ import shutil
 
 
 def main():
-    # Only compact JSON files go to web/public/data/ - no GFA
+    # Only compact JSON files go to web/public/data/ - no GFA/FASTA/VCF.
     sources = [
         ("results/benchmark/report.json", "web/public/data/latest.json"),
+        ("results/web/manifest.json", "web/public/data/manifest.json"),
+        ("results/web/overview.json", "web/public/data/overview.json"),
+        ("results/web/path_diagnostics.json", "web/public/data/path_diagnostics.json"),
     ]
 
     for src, dst in sources:
@@ -31,6 +34,25 @@ def main():
         os.makedirs(os.path.dirname(dst), exist_ok=True)
         shutil.copy2(src, dst)
         print(f"Synced {src} -> {dst}")
+
+    # Sync the per-sample graph directory (results/web/graphs -> web/public/data/graphs)
+    src_graphs = "results/web/graphs"
+    dst_graphs = "web/public/data/graphs"
+    if os.path.isdir(src_graphs):
+        for root, _dirs, files in os.walk(src_graphs):
+            for fn in files:
+                if not fn.endswith(".json"):
+                    continue
+                fp = os.path.join(root, fn)
+                if not guard_no_genomic(fp):
+                    continue
+                if not guard_file_size(fp, int(os.environ.get("WEB_MAX_FILE_MB", "10"))):
+                    continue
+                rel = os.path.relpath(fp, src_graphs)
+                dst = os.path.join(dst_graphs, rel)
+                os.makedirs(os.path.dirname(dst), exist_ok=True)
+                shutil.copy2(fp, dst)
+        print(f"Synced {src_graphs} -> {dst_graphs}")
 
     # Scan web/public for forbidden files
     for root, dirs, files in os.walk("web/public"):
@@ -46,8 +68,9 @@ def main():
 
 
 def guard_no_genomic(path):
-    """Refuse GFA/FASTA/VCF files in web/public."""
-    forbidden = [".gfa", ".fa", ".fasta", ".vcf", ".vcf.gz", ".fa.gz", ".gfa.gz"]
+    """Refuse GFA/FASTA/VCF/BAM/CRAM files in web/public."""
+    forbidden = [".gfa", ".fa", ".fasta", ".vcf", ".vcf.gz", ".fa.gz",
+                 ".fasta.gz", ".gfa.gz", ".bam", ".cram"]
     ext = os.path.splitext(path)[1].lower()
     if ext in forbidden or any(path.endswith(e) for e in forbidden):
         print(f"  BLOCKED: {path} - genomic files not allowed in web/public/")

@@ -32,14 +32,23 @@ fi
 echo "  Project: $PROJECT_ID"
 echo "  Instance: $INSTANCE"
 
-# Ensure chunk FASTAs exist
-python3 pipeline/parallel/make_chunks.py 2>/dev/null || true
-python3 pipeline/parallel/build_all_chunks.py
-
 MANIFEST="work/chunks/chunk_manifest.tsv"
+
+# Ensure chunk FASTAs exist (fail if manifest not already present)
+if [ ! -f "$MANIFEST" ]; then
+    if [ "$DRY_RUN" = true ]; then
+        echo "  DRY-RUN: would run make_chunks.py to create $MANIFEST"
+    else
+        python3 pipeline/parallel/make_chunks.py || {
+            echo "FATAL: make_chunks.py failed"
+            exit 1
+        }
+    fi
+fi
+
 [ ! -f "$MANIFEST" ] && echo "FATAL: No manifest at $MANIFEST" && exit 1
 
-EXPECTED_CHUNKS=$(tail -n +2 "$MANIFEST" | wc -l)
+EXPECTED_CHUNKS=$(($(tail -n +2 "$MANIFEST" | wc -l)))
 echo "  Expected chunks: $EXPECTED_CHUNKS"
 
 # === BUILD APPLET (capture APPLET_ID via --brief, not by rediscovering) ===

@@ -1,0 +1,54 @@
+{
+  "dataset": {
+    "chromosome": "chr21",
+    "end": 21000000,
+    "length_bp": 1000000,
+    "reference": "GRCh38",
+    "start": 20000000
+  },
+  "files": {
+    "benchmark": "benchmark.json",
+    "boundary_comparison": "boundary_comparison.json",
+    "graph_comparison": "graph_comparison.json",
+    "path_comparison": "path_comparison.json",
+    "timing": "timing.json",
+    "variant_comparisons": "variant_comparisons.json",
+    "visualization_region": "visualization_region.json"
+  },
+  "provenance": {
+    "baseline_gfa_sha256": "bb1ad26b31f989aed7dcf3b2ea6d065af8367c8cabe55ce94adf8dfc58cdc7b8",
+    "generated_at": "2026-08-28T15:19:06Z",
+    "git_sha": "13ed097b9811a50e5e7658fb8bd5faef5ab36bc5",
+    "merged_gfa_sha256": "bb1ad26b31f989aed7dcf3b2ea6d065af8367c8cabe55ce94adf8dfc58cdc7b8"
+  },
+  "samples": [
+    {
+      "haplotype": "0",
+      "sample": "GRCh38"
+    },
+    {
+      "haplotype": "1",
+      "sample": "HG00673"
+    },
+    {
+      "haplotype": "2",
+      "sample": "HG00673"
+    },
+    {
+      "haplotype": "1",
+      "sample": "HG00733"
+    },
+    {
+      "haplotype": "2",
+      "sample": "HG00733"
+    }
+  ],
+  "schema_version": "final-1",
+  "validation": {
+    "baseline": "REAL_HPRC_VALIDATED",
+    "parallel": "NOT_RUN",
+    "path_equivalence": "NOT_RUN",
+    "stitch": "BASELINE_COPY_DEMO_ONLY",
+    "variant_equivalence": "NOT_RUN"
+  }
+}
