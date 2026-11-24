@@ -3,6 +3,8 @@
 # Tier 2 scaling driver: resumable (compare_chunking skips finished builds)
 set -euo pipefail
 export PIPELINE_CONFIG=/home/user/linear-scaling-pangenome-sv/config/pipeline.yaml
+# replicate 1 ran before the -B fix; keep pggb's own default for both replicates (chr21 1 Mb is unaffected, see docs/TIER2.md)
+export PGGB_TRANSCLOSE_BATCH=pggb-default
 cd /home/user/work/scale
 R=/home/user/linear-scaling-pangenome-sv; M=/home/user/work/manifests
 for job in N10:1 N20:1 N40:1 N10:2 N20:2 N40:2; do

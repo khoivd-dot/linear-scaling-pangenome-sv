@@ -45,16 +45,16 @@ samtools faidx "$WORK/in.fa"
 N_SEQS=$(wc -l < "$WORK/in.fa.fai")
 
 # Parameters come from the same config loader as every other runner.
-read -r S P K KK J E < <(python3 -c '
+read -r S P K KK J E B < <(python3 -c '
 import sys; sys.path.insert(0, "scripts")
 from gen_pggb_config import load_config
 c = load_config()
-print(c["segment_length"], c["minimum_identity"], c["mash_kmer"], c["match_length"], c["path_jump_max"], c["edge_jump_max"])')
+print(c["segment_length"], c["minimum_identity"], c["mash_kmer"], c["match_length"], c["path_jump_max"], c["edge_jump_max"], c["transclose_batch"])')
 
 T1=$(date +%s)
 /usr/bin/time -v -o "$WORK/time.txt" \
   pggb -i "$WORK/in.fa" -o "$WORK/out" -t "$THREADS" -n "$N_SEQS" \
-       -p "$P" -s "$S" -K "$K" -k "$KK" -j "$J" -e "$E" > "$WORK/pggb.log" 2>&1 \
+       -p "$P" -s "$S" -K "$K" -k "$KK" -j "$J" -e "$E" -B "$B" > "$WORK/pggb.log" 2>&1 \
   || { tail -40 "$WORK/pggb.log"; put "$WORK/pggb.log" "$RESULTS_S3/$RUN/$BLOCK/pggb.FAILED.log"; exit 1; }
 T_PGGB=$(( $(date +%s) - T1 ))
 

@@ -63,14 +63,14 @@ def main():
 
     num_paths = sum(1 for line in open(input_fa) if line.startswith(">"))
 
-    # Experiment-only override of seqwish's transitive-closure batch (pggb -B).
-    # pggb v0.6.0 passes its default "10M" to the bundled seqwish
-    # (v0.7.11-35-gaab5bee), which reads it as 1,000,000; with 1 Mb batches that
-    # seqwish drops alignments across batch edges and leaves inputs over 1 Mb
-    # under-collapsed. A plain number larger than the input avoids it.
-    transclose_batch = os.environ.get("PGGB_TRANSCLOSE_BATCH", "")
-    if transclose_batch and not transclose_batch.isdigit():
-        sys.exit("FATAL: PGGB_TRANSCLOSE_BATCH must be a plain number of bp (no K/M suffix)")
+    # seqwish transitive-closure batch (pggb -B), a plain bp count from the
+    # config (see config/pipeline.yaml). PGGB_TRANSCLOSE_BATCH overrides it;
+    # "pggb-default" leaves -B out, reproducing pggb's unconverted "10M" default.
+    transclose_batch = os.environ.get("PGGB_TRANSCLOSE_BATCH", str(cfg["transclose_batch"]))
+    if transclose_batch == "pggb-default":
+        transclose_batch = ""
+    elif not transclose_batch.isdigit():
+        sys.exit("FATAL: transclose batch must be a plain number of bp (no K/M suffix)")
 
     # Build canonical PGGB command — identical parameters to the applets.
     cmd = [

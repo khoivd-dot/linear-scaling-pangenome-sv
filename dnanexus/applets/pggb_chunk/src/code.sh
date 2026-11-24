@@ -23,11 +23,12 @@ main() {
     MASH_KMER=$(echo "$CFG_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('mash_kmer',31))")
     PATH_JUMP=$(echo "$CFG_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('path_jump_max',0))")
     EDGE_JUMP=$(echo "$CFG_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('edge_jump_max',0))")
+    TBATCH=$(echo "$CFG_JSON" | python3 -c "import sys,json; print(int(json.load(sys.stdin).get('transclose_batch',100000000)))")
     PGGB_IMAGE=$(echo "$CFG_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('image','ghcr.io/pangenome/pggb:latest'))")
     CONFIG_SHA256=$(echo "$CFG_JSON" | python3 -c "import sys,json; print(json.load(sys.stdin).get('config_sha256',''))")
 
     echo "PGGB params from pggb_config_json:"
-    echo "  threads=$THREADS -p $MIN_ID -s $SEG_LEN -K $MASH_KMER -k $MATCH_LEN -j $PATH_JUMP -e $EDGE_JUMP"
+    echo "  threads=$THREADS -p $MIN_ID -s $SEG_LEN -K $MASH_KMER -k $MATCH_LEN -j $PATH_JUMP -e $EDGE_JUMP -B $TBATCH"
     echo "  image=$PGGB_IMAGE"
     echo ""
 
@@ -87,7 +88,7 @@ seqwish -s /data/input.fa \
     -p /data/output/alignments.paf \
     -k __MATCHLEN__ -f 0 \
     -g /data/output/seqwish.gfa \
-    -B 10M -t __THREADS__ \
+    -B __TBATCH__ -t __THREADS__ \
     --temp-dir /data/output -P
 echo "[4/7] seqwish done"
 
@@ -121,6 +122,7 @@ HEREDOC_END
         -e "s/__KMER__/${MASH_KMER}/g" -e "s/__MATCHLEN__/${MATCH_LEN}/g" \
         -e "s/__PJUMP__/${PATH_JUMP}/g" -e "s/__EJUMP__/${EDGE_JUMP}/g" \
         -e "s/__THREADS__/${THREADS}/g" -e "s/__NPATHS__/${NUM_PATHS}/g" \
+        -e "s/__TBATCH__/${TBATCH}/g" \
         /tmp/chunk_pipeline.sh
 
     chmod +x /tmp/chunk_pipeline.sh
