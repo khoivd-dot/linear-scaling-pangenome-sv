@@ -23,6 +23,17 @@ def test_gen_pggb_config_parses():
         assert k in cfg, f"missing key: {k}"
 
 
+def test_transclose_batch_is_plain_number():
+    """seqwish -B must be a plain bp count: pggb v0.6.0 passes '10M' unconverted."""
+    from gen_pggb_config import load_config
+    cfg = load_config()
+    assert isinstance(cfg["transclose_batch"], int) and cfg["transclose_batch"] >= 10_000_000
+    for path in ["scripts/run_pggb.py", "aws/run_block.sh", "dnanexus/docker_helper.sh",
+                 "dnanexus/applets/pggb_baseline/src/code.sh", "dnanexus/applets/pggb_chunk/src/code.sh"]:
+        text = open(os.path.join(REPO, path)).read()
+        assert "-B" in text and "-B 10M" not in text, path
+
+
 def test_no_invalid_pggb_option():
     """No stale -w / kmer_length / window_size keys survive."""
     from gen_pggb_config import load_config

@@ -51,6 +51,7 @@ run_pggb() {
     local MATCH_LEN; MATCH_LEN="$(echo "$cfg" | python3 -c "import sys,json;print(json.load(sys.stdin).get('match_length',29))" 2>/dev/null || echo 29)"
     local PATH_JUMP; PATH_JUMP="$(echo "$cfg" | python3 -c "import sys,json;print(json.load(sys.stdin).get('path_jump_max',0))" 2>/dev/null || echo 0)"
     local EDGE_JUMP; EDGE_JUMP="$(echo "$cfg" | python3 -c "import sys,json;print(json.load(sys.stdin).get('edge_jump_max',0))" 2>/dev/null || echo 0)"
+    local TBATCH; TBATCH="$(echo "$cfg" | python3 -c "import sys,json;print(int(json.load(sys.stdin).get('transclose_batch',100000000)))" 2>/dev/null || echo 100000000)"
     local THREADS; THREADS="${threads:-$(echo "$cfg" | python3 -c "import sys,json;print(json.load(sys.stdin).get('threads',8))" 2>/dev/null || echo 8)}"
     local NP; NP="${num_paths:-$(grep -c '^>' "$input")}"
 
@@ -72,7 +73,8 @@ run_pggb() {
             -K $MASH_KMER \
             -k $MATCH_LEN \
             -j $PATH_JUMP \
-            -e $EDGE_JUMP"
+            -e $EDGE_JUMP \
+            -B $TBATCH"
 
     # Find the output GFA
     local gfa; gfa=$(find "$outdir" -name "*final.gfa" -type f 2>/dev/null | head -1)

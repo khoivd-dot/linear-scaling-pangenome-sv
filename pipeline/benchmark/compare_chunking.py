@@ -43,7 +43,7 @@ def build(fasta, outdir, threads):
     return gfa, json.load(open(meta))["wall_seconds"]
 
 
-def variants(gfa, region_start):
+def variants(gfa, region_start, chrom="chr21"):
     """{(pos, ref, alt)} on the GRCh38 path, positions on the chromosome (1-based)."""
     image = load_config()["image"]
     d, name = os.path.split(os.path.abspath(gfa))
@@ -51,12 +51,17 @@ def variants(gfa, region_start):
                           f"vg deconstruct -P GRCh38 -a /g/{name} 2>/dev/null"],
                          check=True, capture_output=True, text=True).stdout
     calls = set()
+    vcf = open(os.path.splitext(gfa)[0] + ".vcf", "w")  # chromosome coordinates, for truvari
     for line in out.splitlines():
         if line.startswith("#"):
+            if not line.startswith("##contig"):
+                vcf.write(line + "\n")
             continue
         f = line.split("\t")
+        vcf.write("\t".join([chrom, str(int(f[1]) + region_start)] + f[2:]) + "\n")
         for alt in f[4].split(","):
             calls.add((int(f[1]) + region_start, f[3], alt))
+    vcf.close()
     return calls
 
 
@@ -95,8 +100,10 @@ def main(argv=None):
     ap.add_argument("--strategy", action="append", required=True, help="NAME=MANIFEST=FASTA_DIR")
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--region-start", type=int, default=20000000)
+    ap.add_argument("--chrom", default="chr21", help="chromosome name written to the VCFs")
     ap.add_argument("--skip-variants", action="store_true")
     a = ap.parse_args(argv)
+    a.workdir = os.path.abspath(a.workdir)  # run_pggb.py runs with cwd=ROOT
     os.makedirs(a.workdir, exist_ok=True)
 
     mono_gfa, mono_wall = build(os.path.abspath(a.mono), os.path.join(a.workdir, "monolithic"), a.threads)
@@ -105,7 +112,7 @@ def main(argv=None):
     result = {"pggb_params": {k: v for k, v in load_config().items() if k != "image"},
               "threads_per_build": a.threads,
               "monolithic": {"wall_s": mono_wall, **compute_stats(mono, "monolithic")}}
-    truth = None if a.skip_variants else variants(mono_gfa, a.region_start)
+    truth = None if a.skip_variants else variants(mono_gfa, a.region_start, a.chrom)
     if truth is not None:
         result["monolithic"]["variants"] = {k: len(v) for k, v in by_class(truth).items()}
 
@@ -137,7 +144,7 @@ def main(argv=None):
             **compute_stats(merged, name),
         }
         if truth is not None:
-            test = variants(merged_path, a.region_start)
+            test = variants(merged_path, a.region_start, a.chrom)
             entry["variants_vs_monolithic"] = score(truth, test)
             tc, sc = by_class(truth), by_class(test)
             entry["variants_by_class"] = {c: score(tc.get(c, set()), sc.get(c, set()))

@@ -38,6 +38,34 @@ def _read_paf(paf_path, min_mapq):
                        "mapq": int(p[11]), "cigar": cg}
 
 
+def _longest_chain(alns, strand):
+    """Colinear chain with the most reference bases (O(n^2) dynamic programme).
+
+    A greedy left-to-right walk can lock onto an early piece that maps to the
+    wrong copy of a segmental duplication and then reject every later piece;
+    the DP scores every compatible predecessor instead.
+    """
+    alns = sorted(alns, key=lambda x: (x["ts"], x["te"]))
+    score, back = [], []
+    for i, a in enumerate(alns):
+        best_s, best_j = 0, -1
+        for j in range(i):
+            b = alns[j]
+            if b["te"] > a["ts"]:
+                continue
+            ahead = a["qs"] >= b["qe"] if strand == "+" else a["qe"] <= b["qs"]
+            if ahead and score[j] > best_s:
+                best_s, best_j = score[j], j
+        score.append(best_s + a["te"] - a["ts"])
+        back.append(best_j)
+    i = max(range(len(alns)), key=score.__getitem__)
+    span, chain = score[i], []
+    while i >= 0:
+        chain.append(alns[i])
+        i = back[i]
+    return span, chain[::-1]
+
+
 def chained_alignment(paf_path, min_mapq=20):
     """One colinear chain of primary alignments, merged into a single alignment.
 
@@ -54,15 +82,7 @@ def chained_alignment(paf_path, min_mapq=20):
         raise SystemExit(f"FATAL: no primary alignment with MAPQ >= {min_mapq} in {paf_path}")
     best = None
     for (_q, strand), alns in groups.items():
-        chain = []
-        for a in sorted(alns, key=lambda x: (x["ts"], -(x["te"] - x["ts"]))):
-            if chain:
-                last = chain[-1]
-                ahead = a["qs"] >= last["qe"] if strand == "+" else a["qe"] <= last["qs"]
-                if a["ts"] < last["te"] or not ahead:
-                    continue
-            chain.append(a)
-        span = sum(a["te"] - a["ts"] for a in chain)
+        span, chain = _longest_chain(alns, strand)
         if best is None or span > best[0]:
             best = (span, chain)
     chain = best[1]

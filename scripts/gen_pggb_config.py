@@ -23,6 +23,8 @@ def load_config():
         "match_length": params.get("match_length", 29),
         "path_jump_max": params.get("path_jump_max", 0),
         "edge_jump_max": params.get("edge_jump_max", 0),
+        # plain bp count; see the transclose_batch note in config/pipeline.yaml
+        "transclose_batch": int(params.get("transclose_batch", 100000000)),
     }
 
 

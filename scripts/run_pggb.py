@@ -38,6 +38,16 @@ def find_final_gfa(outdir):
     return str(gfaf[0])
 
 
+def read_time_v(path):
+    """CPU seconds and peak RSS from GNU time -v (peak = largest single process)."""
+    if not os.path.exists(path):
+        return {}
+    v = dict(l.strip().rsplit(": ", 1) for l in open(path) if ": " in l)
+    cpu = float(v.get("User time (seconds)", 0)) + float(v.get("System time (seconds)", 0))
+    return {"cpu_seconds": round(cpu, 1),
+            "peak_rss_mb": round(int(v.get("Maximum resident set size (kbytes)", 0)) / 1024, 1)}
+
+
 def main():
     if len(sys.argv) < 3:
         print("Usage: python3 scripts/run_pggb.py input.fa output_dir [threads]")
@@ -53,6 +63,15 @@ def main():
 
     num_paths = sum(1 for line in open(input_fa) if line.startswith(">"))
 
+    # seqwish transitive-closure batch (pggb -B), a plain bp count from the
+    # config (see config/pipeline.yaml). PGGB_TRANSCLOSE_BATCH overrides it;
+    # "pggb-default" leaves -B out, reproducing pggb's unconverted "10M" default.
+    transclose_batch = os.environ.get("PGGB_TRANSCLOSE_BATCH", str(cfg["transclose_batch"]))
+    if transclose_batch == "pggb-default":
+        transclose_batch = ""
+    elif not transclose_batch.isdigit():
+        sys.exit("FATAL: transclose batch must be a plain number of bp (no K/M suffix)")
+
     # Build canonical PGGB command — identical parameters to the applets.
     cmd = [
         "docker", "run", "--rm",
@@ -60,7 +79,8 @@ def main():
         "-v", f"{outdir}:/data/output",
         cfg["image"],
         "bash", "-lc",
-        "samtools faidx /data/input/{input_file} && pggb "
+        "samtools faidx /data/input/{input_file} && "
+        "/usr/bin/time -v -o /data/output/time_v.txt pggb "
         "-i /data/input/{input_file} "
         "-o /data/output "
         "-t {threads} "
@@ -70,7 +90,8 @@ def main():
         "-K {mash_kmer} "
         "-k {match_length} "
         "-j {path_jump_max} "
-        "-e {edge_jump_max}".format(
+        "-e {edge_jump_max}{batch}".format(
+            batch=f" -B {transclose_batch}" if transclose_batch else "",
             input_file=os.path.basename(input_fa),
             threads=cfg["threads"],
             num_paths=num_paths,
@@ -118,6 +139,7 @@ def main():
     print(f"  Final GFA: {canonical} ({gfa_size} bytes)")
 
     metadata = {
+        **read_time_v(os.path.join(outdir, "time_v.txt")),
         "method": "pggb",
         "container": cfg["image"],
         "image_tag": cfg["image_tag"],
@@ -140,6 +162,7 @@ def main():
             "match_length": cfg["match_length"],
             "path_jump_max": cfg["path_jump_max"],
             "edge_jump_max": cfg["edge_jump_max"],
+            **({"transclose_batch": int(transclose_batch)} if transclose_batch else {}),
         },
     }
     meta_path = os.path.join(outdir, "run_metadata.json")
