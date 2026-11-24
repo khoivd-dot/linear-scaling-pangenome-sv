@@ -54,3 +54,19 @@ def test_chain_joins_split_alignment(tmp_path):
     assert a["pieces"] == 2 and a["cigar"] == "20=5D7I25="
     f = projector(a)
     assert f(0) == 100 and f(20) == 120 and f(25) == 120 and f(26) == 128 and f(50) == 152
+
+
+def test_chain_skips_early_duplicate_copy(tmp_path):
+    # A short early piece maps to a far copy (as in a segmental duplication). A greedy
+    # left-to-right walk takes it and then rejects the two long colinear pieces.
+    from pipeline.prepare.project_chunks import chained_alignment
+    paf = tmp_path / "x.paf"
+    rows = [
+        ["h", 5000, 4000, 4010, "+", "r", 100, 0, 10, 10, 10, 60, "tp:A:P", "cg:Z:10="],
+        ["h", 5000, 100, 140, "+", "r", 100, 5, 45, 40, 40, 60, "tp:A:P", "cg:Z:40="],
+        ["h", 5000, 150, 200, "+", "r", 100, 50, 100, 50, 50, 60, "tp:A:P", "cg:Z:50="],
+    ]
+    paf.write_text("".join("\t".join(map(str, r)) + "\n" for r in rows))
+    a = chained_alignment(str(paf))
+    assert a["pieces"] == 2 and a["aligned_bp"] == 90
+    assert (a["ts"], a["te"], a["qs"], a["qe"]) == (5, 100, 100, 200)
