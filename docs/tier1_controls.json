@@ -1,0 +1,1121 @@
+{
+ "region": "GRCh38 chr21:20,000,000-21,000,000 + HG00673 and HG00733 (both haplotypes), HPRC release 2",
+ "pggb": "v0.6.0 pinned, -p 90 -s 5000 -K 19 -k 29, 4 threads, 4 vCPU 15 GB",
+ "seam_window_bp": 10000,
+ "replicates": {
+  "rep1": {
+   "monolithic": {
+    "nodes": 10386,
+    "edges": 14182,
+    "node_bp": 1006528,
+    "wall_s": 134.9,
+    "cpu_s": 265.7,
+    "peak_rss_mb": 970.9
+   },
+   "windows": {
+    "cuts": [
+     20400000,
+     20800000
+    ],
+    "chunk_bp": [
+     425000,
+     450000,
+     225000
+    ],
+    "nodes": 10396,
+    "edges": 14195,
+    "excess_nodes": 10,
+    "excess_bp": 4744,
+    "excess_bp_within_10kb_of_cut": 4723,
+    "excess_bp_elsewhere": 21,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.998,
+    "truvari_fn": 7,
+    "truvari_fp": 8,
+    "truvari_fn_within_10kb": 7,
+    "truvari_fp_within_10kb": 7,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 274.8,
+    "cpu_sum_s": 393.1,
+    "max_chunk_wall_s": 98.6,
+    "max_peak_rss_mb": 968.9
+   },
+   "windows0": {
+    "cuts": [
+     20333334,
+     20666668
+    ],
+    "chunk_bp": [
+     333334,
+     333334,
+     333332
+    ],
+    "nodes": 10391,
+    "edges": 14188,
+    "excess_nodes": 5,
+    "excess_bp": -22,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -22,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9993,
+    "truvari_fn": 2,
+    "truvari_fp": 3,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "24/24",
+    "wall_sum_s": 260.2,
+    "cpu_sum_s": 359.4,
+    "max_chunk_wall_s": 90.9,
+    "max_peak_rss_mb": 968.3
+   },
+   "hotspots300": {
+    "cuts": [
+     20347668,
+     20650101
+    ],
+    "chunk_bp": [
+     347668,
+     302433,
+     349899
+    ],
+    "nodes": 10389,
+    "edges": 14185,
+    "excess_nodes": 3,
+    "excess_bp": 8,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 8,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9985,
+    "truvari_fn": 4,
+    "truvari_fp": 7,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 261.4,
+    "cpu_sum_s": 360.6,
+    "max_chunk_wall_s": 89.5,
+    "max_peak_rss_mb": 968.2
+   },
+   "hotspots50": {
+    "cuts": [
+     20271080,
+     20347668,
+     20405686,
+     20508839,
+     20583159,
+     20650101,
+     20701257,
+     20795065,
+     20899823
+    ],
+    "chunk_bp": [
+     271080,
+     76588,
+     58018,
+     103153,
+     74320,
+     66942,
+     51156,
+     93808,
+     104758,
+     100177
+    ],
+    "nodes": 10395,
+    "edges": 14191,
+    "excess_nodes": 9,
+    "excess_bp": 5,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 5,
+    "boundaries_pass": "9/9",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9992,
+    "truvari_fn": 2,
+    "truvari_fp": 4,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "24/24",
+    "wall_sum_s": 655.1,
+    "cpu_sum_s": 650.6,
+    "max_chunk_wall_s": 84.5,
+    "max_peak_rss_mb": 967.9
+   },
+   "shift50": {
+    "cuts": [
+     20397668,
+     20700101
+    ],
+    "chunk_bp": [
+     397668,
+     302433,
+     299899
+    ],
+    "nodes": 10391,
+    "edges": 14190,
+    "excess_nodes": 5,
+    "excess_bp": 2,
+    "excess_bp_within_10kb_of_cut": -22,
+    "excess_bp_elsewhere": 24,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9965,
+    "truvari_fn": 14,
+    "truvari_fp": 12,
+    "truvari_fn_within_10kb": 1,
+    "truvari_fp_within_10kb": 2,
+    "truvari_sv_fn": 3,
+    "exact_sv_matched": "18/24",
+    "wall_sum_s": 216.8,
+    "cpu_sum_s": 292.5,
+    "max_chunk_wall_s": 77.5,
+    "max_peak_rss_mb": 968.6
+   },
+   "shift100": {
+    "cuts": [
+     20447668,
+     20750101
+    ],
+    "chunk_bp": [
+     447668,
+     302433,
+     249899
+    ],
+    "nodes": 10390,
+    "edges": 14189,
+    "excess_nodes": 4,
+    "excess_bp": 2,
+    "excess_bp_within_10kb_of_cut": 21,
+    "excess_bp_elsewhere": -19,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9964,
+    "truvari_fn": 15,
+    "truvari_fp": 12,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 1,
+    "truvari_sv_fn": 3,
+    "exact_sv_matched": "18/24",
+    "wall_sum_s": 213.0,
+    "cpu_sum_s": 291.3,
+    "max_chunk_wall_s": 78.5,
+    "max_peak_rss_mb": 968.8
+   },
+   "random_01": {
+    "cuts": [
+     20270445,
+     20698426
+    ],
+    "chunk_bp": [
+     270445,
+     427981,
+     301574
+    ],
+    "nodes": 10408,
+    "edges": 14214,
+    "excess_nodes": 22,
+    "excess_bp": 0,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 0,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9991,
+    "truvari_fn": 1,
+    "truvari_fp": 6,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "19/24",
+    "wall_sum_s": 220.0,
+    "cpu_sum_s": 298.3,
+    "max_chunk_wall_s": 77.7,
+    "max_peak_rss_mb": 968.8
+   },
+   "random_02": {
+    "cuts": [
+     20233086,
+     20533729
+    ],
+    "chunk_bp": [
+     233086,
+     300643,
+     466271
+    ],
+    "nodes": 10363,
+    "edges": 14153,
+    "excess_nodes": -23,
+    "excess_bp": 27,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 27,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.996,
+    "truvari_fn": 17,
+    "truvari_fp": 13,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 3,
+    "exact_sv_matched": "17/24",
+    "wall_sum_s": 222.9,
+    "cpu_sum_s": 303.2,
+    "max_chunk_wall_s": 79.5,
+    "max_peak_rss_mb": 968.4
+   },
+   "random_03": {
+    "cuts": [
+     20261823,
+     20659750
+    ],
+    "chunk_bp": [
+     261823,
+     397927,
+     340250
+    ],
+    "nodes": 10394,
+    "edges": 14193,
+    "excess_nodes": 8,
+    "excess_bp": -93,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -93,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9992,
+    "truvari_fn": 2,
+    "truvari_fp": 4,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "22/24",
+    "wall_sum_s": 220.9,
+    "cpu_sum_s": 306.5,
+    "max_chunk_wall_s": 78.2,
+    "max_peak_rss_mb": 968.4
+   },
+   "random_04": {
+    "cuts": [
+     20435662,
+     20798963
+    ],
+    "chunk_bp": [
+     435662,
+     363301,
+     201037
+    ],
+    "nodes": 10393,
+    "edges": 14191,
+    "excess_nodes": 7,
+    "excess_bp": -13,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -13,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9987,
+    "truvari_fn": 4,
+    "truvari_fp": 6,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "24/24",
+    "wall_sum_s": 219.2,
+    "cpu_sum_s": 303.8,
+    "max_chunk_wall_s": 81.9,
+    "max_peak_rss_mb": 968.3
+   },
+   "random_05": {
+    "cuts": [
+     20447592,
+     20741622
+    ],
+    "chunk_bp": [
+     447592,
+     294030,
+     258378
+    ],
+    "nodes": 10392,
+    "edges": 14192,
+    "excess_nodes": 6,
+    "excess_bp": -28,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -28,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9975,
+    "truvari_fn": 12,
+    "truvari_fp": 7,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 3,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 217.4,
+    "cpu_sum_s": 302.0,
+    "max_chunk_wall_s": 82.7,
+    "max_peak_rss_mb": 968.8
+   },
+   "random_06": {
+    "cuts": [
+     20310076,
+     20599027
+    ],
+    "chunk_bp": [
+     310076,
+     288951,
+     400973
+    ],
+    "nodes": 10391,
+    "edges": 14188,
+    "excess_nodes": 5,
+    "excess_bp": -22,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -22,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9996,
+    "truvari_fn": 1,
+    "truvari_fp": 2,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "24/24",
+    "wall_sum_s": 222.9,
+    "cpu_sum_s": 313.8,
+    "max_chunk_wall_s": 76.8,
+    "max_peak_rss_mb": 968.3
+   },
+   "random_07": {
+    "cuts": [
+     20249209,
+     20655777
+    ],
+    "chunk_bp": [
+     249209,
+     406568,
+     344223
+    ],
+    "nodes": 10407,
+    "edges": 14213,
+    "excess_nodes": 21,
+    "excess_bp": -1,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -1,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9988,
+    "truvari_fn": 2,
+    "truvari_fp": 7,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "19/24",
+    "wall_sum_s": 228.5,
+    "cpu_sum_s": 315.0,
+    "max_chunk_wall_s": 81.4,
+    "max_peak_rss_mb": 968.7
+   },
+   "random_08": {
+    "cuts": [
+     20214862,
+     20604372
+    ],
+    "chunk_bp": [
+     214862,
+     389510,
+     395628
+    ],
+    "nodes": 10317,
+    "edges": 14090,
+    "excess_nodes": -69,
+    "excess_bp": 135,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 135,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9979,
+    "truvari_fn": 7,
+    "truvari_fp": 9,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "19/24",
+    "wall_sum_s": 221.2,
+    "cpu_sum_s": 307.8,
+    "max_chunk_wall_s": 76.5,
+    "max_peak_rss_mb": 968.3
+   },
+   "random_09": {
+    "cuts": [
+     20426894,
+     20718472
+    ],
+    "chunk_bp": [
+     426894,
+     291578,
+     281528
+    ],
+    "nodes": 10387,
+    "edges": 14182,
+    "excess_nodes": 1,
+    "excess_bp": -1,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -1,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9995,
+    "truvari_fn": 1,
+    "truvari_fp": 3,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 219.3,
+    "cpu_sum_s": 302.1,
+    "max_chunk_wall_s": 80.2,
+    "max_peak_rss_mb": 968.2
+   },
+   "random_10": {
+    "cuts": [
+     20201104,
+     20799654
+    ],
+    "chunk_bp": [
+     201104,
+     598550,
+     200346
+    ],
+    "nodes": 10340,
+    "edges": 14124,
+    "excess_nodes": -46,
+    "excess_bp": 82,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 82,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9975,
+    "truvari_fn": 9,
+    "truvari_fp": 10,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "19/24",
+    "wall_sum_s": 222.3,
+    "cpu_sum_s": 311.5,
+    "max_chunk_wall_s": 90.7,
+    "max_peak_rss_mb": 969.4
+   },
+   "random_11": {
+    "cuts": [
+     20433511,
+     20764816
+    ],
+    "chunk_bp": [
+     433511,
+     331305,
+     235184
+    ],
+    "nodes": 10402,
+    "edges": 14204,
+    "excess_nodes": 16,
+    "excess_bp": 34,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 34,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9981,
+    "truvari_fn": 4,
+    "truvari_fp": 10,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 222.7,
+    "cpu_sum_s": 310.2,
+    "max_chunk_wall_s": 81.5,
+    "max_peak_rss_mb": 968.4
+   },
+   "random_12": {
+    "cuts": [
+     20339633,
+     20778294
+    ],
+    "chunk_bp": [
+     339633,
+     438661,
+     221706
+    ],
+    "nodes": 10384,
+    "edges": 14178,
+    "excess_nodes": -2,
+    "excess_bp": 21,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 21,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9999,
+    "truvari_fn": 0,
+    "truvari_fp": 1,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 219.8,
+    "cpu_sum_s": 302.0,
+    "max_chunk_wall_s": 78.5,
+    "max_peak_rss_mb": 968.7
+   },
+   "random_13": {
+    "cuts": [
+     20319937,
+     20709934
+    ],
+    "chunk_bp": [
+     319937,
+     389997,
+     290066
+    ],
+    "nodes": 10386,
+    "edges": 14181,
+    "excess_nodes": 0,
+    "excess_bp": -1,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -1,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9995,
+    "truvari_fn": 1,
+    "truvari_fp": 3,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 220.2,
+    "cpu_sum_s": 300.0,
+    "max_chunk_wall_s": 75.8,
+    "max_peak_rss_mb": 968.6
+   },
+   "random_14": {
+    "cuts": [
+     20253596,
+     20566424
+    ],
+    "chunk_bp": [
+     253596,
+     312828,
+     433576
+    ],
+    "nodes": 10341,
+    "edges": 14127,
+    "excess_nodes": -45,
+    "excess_bp": 76,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 76,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9973,
+    "truvari_fn": 11,
+    "truvari_fp": 9,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 3,
+    "exact_sv_matched": "16/24",
+    "wall_sum_s": 215.8,
+    "cpu_sum_s": 290.8,
+    "max_chunk_wall_s": 74.9,
+    "max_peak_rss_mb": 968.3
+   },
+   "random_15": {
+    "cuts": [
+     20211703,
+     20416037
+    ],
+    "chunk_bp": [
+     211703,
+     204334,
+     583963
+    ],
+    "nodes": 10373,
+    "edges": 14165,
+    "excess_nodes": -13,
+    "excess_bp": 50,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 50,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9985,
+    "truvari_fn": 4,
+    "truvari_fp": 7,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "20/24",
+    "wall_sum_s": 215.0,
+    "cpu_sum_s": 297.5,
+    "max_chunk_wall_s": 85.7,
+    "max_peak_rss_mb": 969.1
+   },
+   "random_16": {
+    "cuts": [
+     20213340,
+     20740549
+    ],
+    "chunk_bp": [
+     213340,
+     527209,
+     259451
+    ],
+    "nodes": 10408,
+    "edges": 14214,
+    "excess_nodes": 22,
+    "excess_bp": -1,
+    "excess_bp_within_10kb_of_cut": 21,
+    "excess_bp_elsewhere": -22,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9983,
+    "truvari_fn": 4,
+    "truvari_fp": 9,
+    "truvari_fn_within_10kb": 2,
+    "truvari_fp_within_10kb": 3,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "19/24",
+    "wall_sum_s": 220.6,
+    "cpu_sum_s": 298.5,
+    "max_chunk_wall_s": 85.0,
+    "max_peak_rss_mb": 969.3
+   },
+   "random_17": {
+    "cuts": [
+     20204826,
+     20683856
+    ],
+    "chunk_bp": [
+     204826,
+     479030,
+     316144
+    ],
+    "nodes": 10315,
+    "edges": 14087,
+    "excess_nodes": -71,
+    "excess_bp": 163,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 163,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.998,
+    "truvari_fn": 5,
+    "truvari_fp": 10,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "16/24",
+    "wall_sum_s": 214.7,
+    "cpu_sum_s": 295.1,
+    "max_chunk_wall_s": 80.3,
+    "max_peak_rss_mb": 969.0
+   },
+   "random_18": {
+    "cuts": [
+     20399860,
+     20759915
+    ],
+    "chunk_bp": [
+     399860,
+     360055,
+     240085
+    ],
+    "nodes": 10391,
+    "edges": 14190,
+    "excess_nodes": 5,
+    "excess_bp": 2,
+    "excess_bp_within_10kb_of_cut": -22,
+    "excess_bp_elsewhere": 24,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9965,
+    "truvari_fn": 14,
+    "truvari_fp": 12,
+    "truvari_fn_within_10kb": 1,
+    "truvari_fp_within_10kb": 2,
+    "truvari_sv_fn": 3,
+    "exact_sv_matched": "18/24",
+    "wall_sum_s": 220.4,
+    "cpu_sum_s": 301.0,
+    "max_chunk_wall_s": 78.4,
+    "max_peak_rss_mb": 968.5
+   },
+   "random_19": {
+    "cuts": [
+     20313560,
+     20621310
+    ],
+    "chunk_bp": [
+     313560,
+     307750,
+     378690
+    ],
+    "nodes": 10400,
+    "edges": 14201,
+    "excess_nodes": 14,
+    "excess_bp": 25,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 25,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9991,
+    "truvari_fn": 1,
+    "truvari_fp": 6,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 220.4,
+    "cpu_sum_s": 299.6,
+    "max_chunk_wall_s": 76.9,
+    "max_peak_rss_mb": 968.2
+   },
+   "random_20": {
+    "cuts": [
+     20215225,
+     20780555
+    ],
+    "chunk_bp": [
+     215225,
+     565330,
+     219445
+    ],
+    "nodes": 10402,
+    "edges": 14204,
+    "excess_nodes": 16,
+    "excess_bp": 34,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 34,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9981,
+    "truvari_fn": 4,
+    "truvari_fp": 10,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 219.6,
+    "cpu_sum_s": 305.2,
+    "max_chunk_wall_s": 87.4,
+    "max_peak_rss_mb": 969.8
+   }
+  },
+  "rep2": {
+   "monolithic": {
+    "nodes": 10395,
+    "edges": 14195,
+    "node_bp": 1006575,
+    "wall_s": 121.5,
+    "cpu_s": 229.1,
+    "peak_rss_mb": 971.3
+   },
+   "windows": {
+    "cuts": [
+     20400000,
+     20800000
+    ],
+    "chunk_bp": [
+     425000,
+     450000,
+     225000
+    ],
+    "nodes": 10396,
+    "edges": 14195,
+    "excess_nodes": 1,
+    "excess_bp": 4697,
+    "excess_bp_within_10kb_of_cut": 4723,
+    "excess_bp_elsewhere": -26,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9975,
+    "truvari_fn": 11,
+    "truvari_fp": 8,
+    "truvari_fn_within_10kb": 7,
+    "truvari_fp_within_10kb": 7,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 240.4,
+    "cpu_sum_s": 326.0,
+    "max_chunk_wall_s": 87.3,
+    "max_peak_rss_mb": 969.0
+   },
+   "windows0": {
+    "cuts": [
+     20333334,
+     20666668
+    ],
+    "chunk_bp": [
+     333334,
+     333334,
+     333332
+    ],
+    "nodes": 10387,
+    "edges": 14182,
+    "excess_nodes": -8,
+    "excess_bp": -48,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -48,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9987,
+    "truvari_fn": 6,
+    "truvari_fp": 4,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 224.5,
+    "cpu_sum_s": 308.0,
+    "max_chunk_wall_s": 78.3,
+    "max_peak_rss_mb": 968.2
+   },
+   "hotspots300": {
+    "cuts": [
+     20347668,
+     20650101
+    ],
+    "chunk_bp": [
+     347668,
+     302433,
+     349899
+    ],
+    "nodes": 10389,
+    "edges": 14185,
+    "excess_nodes": -6,
+    "excess_bp": -39,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -39,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.998,
+    "truvari_fn": 8,
+    "truvari_fp": 7,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 224.2,
+    "cpu_sum_s": 308.9,
+    "max_chunk_wall_s": 78.5,
+    "max_peak_rss_mb": 968.3
+   },
+   "hotspots50": {
+    "cuts": [
+     20271080,
+     20347668,
+     20405686,
+     20508839,
+     20583159,
+     20650101,
+     20701257,
+     20795065,
+     20899823
+    ],
+    "chunk_bp": [
+     271080,
+     76588,
+     58018,
+     103153,
+     74320,
+     66942,
+     51156,
+     93808,
+     104758,
+     100177
+    ],
+    "nodes": 10404,
+    "edges": 14204,
+    "excess_nodes": 9,
+    "excess_bp": 5,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": 5,
+    "boundaries_pass": "9/9",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9992,
+    "truvari_fn": 2,
+    "truvari_fp": 4,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "24/24",
+    "wall_sum_s": 591.7,
+    "cpu_sum_s": 586.2,
+    "max_chunk_wall_s": 70.8,
+    "max_peak_rss_mb": 967.9
+   }
+  },
+  "rep3": {
+   "monolithic": {
+    "nodes": 10395,
+    "edges": 14195,
+    "node_bp": 1006575,
+    "wall_s": 111.6,
+    "cpu_s": 221.0,
+    "peak_rss_mb": 971.4
+   },
+   "windows": {
+    "cuts": [
+     20400000,
+     20800000
+    ],
+    "chunk_bp": [
+     425000,
+     450000,
+     225000
+    ],
+    "nodes": 10396,
+    "edges": 14195,
+    "excess_nodes": 1,
+    "excess_bp": 4697,
+    "excess_bp_within_10kb_of_cut": 4723,
+    "excess_bp_elsewhere": -26,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9975,
+    "truvari_fn": 11,
+    "truvari_fp": 8,
+    "truvari_fn_within_10kb": 7,
+    "truvari_fp_within_10kb": 7,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 222.8,
+    "cpu_sum_s": 316.7,
+    "max_chunk_wall_s": 79.0,
+    "max_peak_rss_mb": 968.9
+   },
+   "windows0": {
+    "cuts": [
+     20333334,
+     20666668
+    ],
+    "chunk_bp": [
+     333334,
+     333334,
+     333332
+    ],
+    "nodes": 10391,
+    "edges": 14188,
+    "excess_nodes": -4,
+    "excess_bp": -69,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -69,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9988,
+    "truvari_fn": 6,
+    "truvari_fp": 3,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 226.3,
+    "cpu_sum_s": 314.2,
+    "max_chunk_wall_s": 76.9,
+    "max_peak_rss_mb": 968.2
+   },
+   "hotspots300": {
+    "cuts": [
+     20347668,
+     20650101
+    ],
+    "chunk_bp": [
+     347668,
+     302433,
+     349899
+    ],
+    "nodes": 10387,
+    "edges": 14182,
+    "excess_nodes": -8,
+    "excess_bp": -12,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -12,
+    "boundaries_pass": "2/2",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9976,
+    "truvari_fn": 9,
+    "truvari_fp": 9,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 224.3,
+    "cpu_sum_s": 311.9,
+    "max_chunk_wall_s": 77.8,
+    "max_peak_rss_mb": 968.2
+   },
+   "hotspots50": {
+    "cuts": [
+     20271080,
+     20347668,
+     20405686,
+     20508839,
+     20583159,
+     20650101,
+     20701257,
+     20795065,
+     20899823
+    ],
+    "chunk_bp": [
+     271080,
+     76588,
+     58018,
+     103153,
+     74320,
+     66942,
+     51156,
+     93808,
+     104758,
+     100177
+    ],
+    "nodes": 10393,
+    "edges": 14188,
+    "excess_nodes": -2,
+    "excess_bp": -48,
+    "excess_bp_within_10kb_of_cut": 0,
+    "excess_bp_elsewhere": -48,
+    "boundaries_pass": "9/9",
+    "haplotypes_identical": "5/5",
+    "truvari_f1": 0.9989,
+    "truvari_fn": 5,
+    "truvari_fp": 3,
+    "truvari_fn_within_10kb": 0,
+    "truvari_fp_within_10kb": 0,
+    "truvari_sv_fn": 0,
+    "exact_sv_matched": "21/24",
+    "wall_sum_s": 587.8,
+    "cpu_sum_s": 583.8,
+    "max_chunk_wall_s": 73.2,
+    "max_peak_rss_mb": 967.8
+   }
+  }
+ },
+ "random_cuts": {
+  "n": 20,
+  "min_chunk_bp": 200000,
+  "seed": 1,
+  "excess_bp_range": [
+   -93,
+   163
+  ],
+  "abs_excess_bp_median": 26.0,
+  "truvari_f1_range": [
+   0.996,
+   0.9999
+  ],
+  "truvari_f1_median": 0.9984,
+  "excess_bp_within_10kb_nonzero": 2
+ },
+ "shifted": {},
+ "monolithic_vs_monolithic_truvari_f1": {
+  "rep1_vs_rep2": 0.9995,
+  "rep1_vs_rep3": 0.9995,
+  "rep2_vs_rep3": 1.0
+ }
+}

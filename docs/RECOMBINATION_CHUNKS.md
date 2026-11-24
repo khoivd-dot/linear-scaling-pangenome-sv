@@ -76,9 +76,12 @@ What the numbers say:
 
 ## Limits
 
-- One region, five haplotypes, one run per build. Timings will vary by a few
-  seconds between runs; the topology and variant numbers are deterministic for
-  the pinned image.
+- One region, five haplotypes, one run per build. Timings vary by a few
+  seconds between runs, and so does the graph: replicates in
+  [TIER1_CONTROLS.md](TIER1_CONTROLS.md) show the monolithic build itself
+  changing by up to 9 nodes and 47 bp between runs of the pinned image. That
+  follow-up also shows the hotspot advantage here came from dropping the 50 kb
+  overlap, not from where the cuts fall.
 - The hotspot map comes from 1000 Genomes short-read data, while the
   haplotypes here are HPRC long-read assemblies. The cut positions are
   reference coordinates, so they transfer, but they were not derived from these
