@@ -93,9 +93,19 @@
   },
   {
    "step": "Tier 3",
-   "question": "Do the results hold in a second replicate and with PGGB's recommended human settings (-p 98 -s 10k -k 47)?",
-   "finding": "Replicate builds of the duplication regions, the scaling series and the -p 98 control are running.",
-   "status": "running",
+   "question": "Do the results hold in a second replicate?",
+   "finding": "Yes. Rebuilding every truth-set graph and the 10/20/40-haplotype scaling series moved truth F1 by 0.015 or less and kept the ranking: fixed zero-overlap windows beat hotspot cuts in 5 of 6 scaling comparisons.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER3.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"
+   }
+  },
+  {
+   "step": "Tier 3",
+   "question": "Do PGGB's recommended human settings (-p 98 -s 10k -k 47) remove the paralog problem?",
+   "finding": "They reduce it (monolithic revisits 6-8% vs 9-11%) but chunked graphs still score higher: F1 0.94/0.97 vs 0.86/0.93. They also exposed a calling trap: PGGB's vcfbub -a 100000 dropped most monolithic calls (F1 0.24-0.47) because the reference path loops.",
+   "status": "done",
    "writeup": {
     "label": "TIER3.md",
     "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"

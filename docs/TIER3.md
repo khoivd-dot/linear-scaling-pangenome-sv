@@ -18,10 +18,11 @@ how cost and accuracy behave at a larger scale.
   (fixed or haploblocks.org hotspots) do not change this.
 - **In 22q11.2 the chunked graph is closer to the truth than the monolithic
   one.** F1 is 0.962 against 0.880 overall, and 0.937 against 0.719 inside the
-  LCR22 duplications. The monolithic graph loses recall there (0.66 against
-  0.93) because it routes about 9% of each haplotype through nodes the same
-  haplotype has already used, which merges paralogous copies; the chunked
-  graph does this for 2.4%.
+  LCR22 duplications. The monolithic graph routes about 9% of each haplotype
+  through nodes the same haplotype has already used, which merges paralogous
+  copies; the chunked graph does this for 2.4%. Part of the monolithic graph's
+  lost recall is a calling artifact of those loops (see E5): with a smaller
+  vcfbub bubble cut it scores 0.903, still below the chunked 0.960.
 - **17q21.31 is mixed.** Chunking raises small-variant precision inside the
   duplicated flanks (0.63 against 0.50) but adds SV false positives there
   (7 against 2, of 5 true SVs), so SV F1 drops from 0.90 to 0.72. The SV counts
@@ -40,9 +41,17 @@ how cost and accuracy behave at a larger scale.
   overhead is 1.22 times, with 2.5 Mb chunks 1.06 times.
 - **impg lace and our stitch give identical graphs** on all 4 regions (same
   nodes, sequence and truth scores).
-
-PENDING: the recommended-settings control (E5). Both replicates of E1, E2 and
-the scaling series (E3) are in, and they agree.
+- **Both replicates agree.** A second build of every E1 and E2 graph and of
+  the 10/20/40-haplotype scaling series (E3) moved truth F1 by 0.015 or less
+  and kept the ranking of chunkings.
+- **PGGB's recommended human settings (`-p 98 -s 10k -k 47`) reduce but do not
+  remove paralog merging in monolithic graphs, and expose a calling trap.**
+  With the PGGB pipeline's `vcfbub -l 0 -a 100000`, the `-p 98` monolithic
+  graphs lost most of their calls (F1 0.47 in 17q21.31, 0.24 in 22q11.2)
+  because the reference path loops through a short top-level bubble that hides
+  hundreds of kb of nested sites. Rescored with `-a 10000` they reach 0.86 and
+  0.93, still below the chunked graphs at the same settings (0.94 and 0.97),
+  which are the most accurate graphs in the study.
 
 ## Truth set
 
@@ -102,7 +111,9 @@ are all in the duplicated blocks. There the two regions behave differently:
 - **22q11.2.** Inside the LCR22s the monolithic graph misses a third of the
   truth calls (recall 0.660) and the chunked graph misses 7% (0.933), with
   higher precision as well (0.941 against 0.790). SV recall rises from 0.68 to
-  0.89; SV precision falls from 0.86 to 0.75.
+  0.89; SV precision falls from 0.86 to 0.75. About half of the monolithic
+  graph's missing recall in the LCR22s comes back when the VCF is made with a
+  smaller vcfbub bubble cut (recall 0.821 with `-a 10000`; E5).
 - **17q21.31.** Both graphs have low precision in the duplicated flanks
   (0.50 and 0.63) at the same recall (0.85). The SV numbers rest on 5 true
   SVs in duplications, where the chunked graph adds 5 more false positives.
@@ -122,9 +133,10 @@ graph merged two copies of a sequence from the same haplotype.
 With `-p 90`, wfmash maps segments between paralogous copies that are 90% or
 more identical, and seqwish then merges them, so a haplotype's variants in one
 copy are expressed relative to a merged node rather than to its own GRCh38
-locus. Chunks that separate the copies cannot do this. E5 tests whether the
-stricter settings PGGB recommends for human data avoid the problem without
-chunking.
+locus. Chunks that separate the copies cannot do this. The loops also break
+variant calling downstream, which E5 found when it tested whether the stricter
+settings PGGB recommends for human data avoid the problem without chunking
+(they reduce it; they do not remove it).
 
 ## E2: duplication-aware chunk groups
 
@@ -248,15 +260,75 @@ one in both replicates (2/2 or 9/9 seams, 11/11, 21/21 and 41/41 paths).
   against 13,442 at N = 10; 22,898 against 23,120 at N = 40), the same
   run-to-run noise seen in Tier 1, now growing with N.
 
-## E5: PGGB's recommended human settings (running)
+## E5: PGGB's recommended human settings, and a calling artifact
+
+E1 to E4 used the project's `-p 90 -s 5000 -k 29`. The PGGB README recommends
+`-p 98 -s 10000 -k 47` for human data, and higher identity should stop wfmash
+from aligning paralogs that are only 90 to 98% identical. E5 rebuilt the
+monolithic and windows0 graphs of all three 1 Mb-scale regions with those
+settings (`run_e5.sh`, one replicate).
+
+The first scores were striking: the `-p 98` monolithic graph scored F1 0.468
+in 17q21.31 and 0.239 in 22q11.2, with recall outside duplications of 0.02 and
+0.003. The graphs themselves were not empty: wfmash aligned every haplotype end
+to end. The calls were lost in the VCF step. In both monolithic graphs the
+GRCh38 path itself revisits nodes (11% of its length in 17q21.31), so
+`vg deconstruct` reports one top-level bubble with a short reference allele
+(20 kb at chr17:46.49 Mb) whose 990 nested sites span about 700 kb of the
+region. `vcfbub -l 0 -a 100000`, the setting the PGGB pipeline uses, keeps
+only top-level sites and pops a bubble only when an allele exceeds 100 kb, so
+it dropped all 990. The graph VCF of the 17q21.31 monolithic graph had 880
+records against 1,800 for windows0.
+
+`run_bub_sensitivity.sh` therefore rescored the duplication regions with
+`-a 10000`, which pops such parents and keeps their nested sites. Truth F1,
+all variants (in SDs) [SVs], with `-a 100000` / `-a 10000`:
+
+| Graph | 17q21.31 | 22q11.2 |
+| --- | --- | --- |
+| `-p 90` monolithic | 0.743 / 0.743 (0.627 / 0.628) [0.90 / 0.90] | 0.880 / 0.903 (0.719 / 0.796) [0.76 / 0.79] |
+| `-p 90` windows0 | 0.804 / 0.804 (0.720 / 0.720) [0.72 / 0.72] | 0.962 / 0.960 (0.937 / 0.932) [0.82 / 0.85] |
+| `-p 90` sdgroup | 0.750 / 0.750 (0.637 / 0.637) [0.71 / 0.71] | 0.889 / 0.891 (0.760 / 0.766) [0.79 / 0.78] |
+| `-p 98` monolithic | 0.468 / 0.862 (0.664 / 0.794) [0.36 / 1.00] | 0.239 / 0.929 (0.505 / 0.855) [0.07 / 0.78] |
+| `-p 98` windows0 | 0.941 / 0.941 (0.917 / 0.917) [1.00 / 1.00] | 0.962 / 0.965 (0.937 / 0.943) [0.80 / 0.85] |
+
+On chr21 the `-p 98` graphs score the same as at `-p 90` (F1 0.981, SV F1
+0.943 for both monolithic and windows0).
+
+- **The calling step matters as much as the settings.** With PGGB's own
+  vcfbub setting, a monolithic graph of a duplicated region can lose most of
+  its calls without any sign in the graph. The chunked graphs are almost
+  untouched by the change (overall F1 moves by at most 0.003, SV F1 by up to
+  0.05 in 22q11.2), because a chunk limits how far
+  such a loop can reach.
+- **Part of the E1 gap in 22q11.2 was this artifact.** With `-a 10000` the
+  `-p 90` monolithic graph recovers recall inside the LCR22s from 0.660 to
+  0.821 and F1 from 0.880 to 0.903. The chunked graph still scores higher
+  (0.960), so the E1 conclusion stands with a smaller margin.
+- **Stricter settings help the monolithic graph but do not close the gap.**
+  Scored with `-a 10000`, the `-p 98` monolithic graph improves on `-p 90`
+  (17q21.31 0.862 against 0.743; 22q11.2 0.929 against 0.903) and still
+  trails windows0 at `-p 98` (0.941 and 0.965). Revisits fall from 10.5% to
+  6.4% in 17q21.31 and from 9.0% to 7.7% in 22q11.2, against 2.6% and 2.3%
+  for windows0 ([`tier3_path_revisits_p98.tsv`](tier3_path_revisits_p98.tsv)).
+  Higher identity reduces paralog merging; it does not stop it.
+- **The best graphs in this study are chunked graphs at `-p 98`.** In
+  17q21.31 they reach F1 0.941 and find all 9 truth SVs with no false
+  positives, where every `-p 90` graph scored 0.74 to 0.80.
+- **Cost.** At `-p 98` the 22q11.2 monolithic build took 806 s CPU and 276 s
+  wall; windows0 took 928 s CPU (1.15 times) with the longest chunk at 120 s.
 
 ## What this changes
 
 - The accuracy question from Tier 2 has an answer for the regions tested:
   where chunked and monolithic graphs disagree, the chunked graph is at least
-  as close to assembly-based truth, and in 22q11.2 much closer. Chunk
-  boundaries that separate paralogous copies act as a guard against collapsing
-  them.
+  as close to assembly-based truth, at `-p 90` and at `-p 98`, with either
+  vcfbub cut. Chunk boundaries that separate paralogous copies act as a guard
+  against collapsing them.
+- For human duplicated regions, use `-p 98 -s 10000 -k 47` and chunks of a few
+  hundred kb, and do not take the `vcfbub -l 0 -a 100000` VCF of a monolithic
+  graph at face value: check whether the reference path revisits nodes
+  (`path_revisits.py`) and compare against `-a 10000`.
 - Duplication-aware grouping is not worth its cost.
 - For runs longer than a few Mb, chunks of 1 Mb or more keep the CPU overhead
   near 1.06 to 1.22 times while capping memory near 1 GB.
@@ -273,11 +345,18 @@ one in both replicates (2/2 or 9/9 seams, 11/11, 21/21 and 41/41 paths).
 - The minimap2 used for projection here is mappy 2.31 (minimap2's own Python
   binding) behind a small command-line shim, not the 2.28 binary used in
   Tier 2.
+- E5 (`-p 98`) ran once. The `-a 10000` rescoring is one alternative vcfbub
+  cut chosen to expose the artifact, not a tuned or validated calling
+  pipeline; it changes how large SVs are split, which moves SV F1 by up to
+  0.05 even for chunked graphs.
 
 ## Reproduce
 
 Scripts as run are in `pipeline/benchmark/tier3/`; `setup_inputs.sh`,
 `run_truth.sh`, `run_e1e2.sh`, `run_e4.sh`, `scaling_select.sh`,
-`scaling_rep2.sh`, `run_e5.sh`, and `run_queue.sh` for the order. The same
+`scaling_rep2.sh`, `run_e5.sh`, `run_bub_sensitivity.sh`, and `run_queue.sh`
+for the order. The same
 stages run on a GitHub runner from `.github/workflows/experiment.yml`.
-`summarize.py` writes [`tier3.json`](tier3.json).
+`summarize.py RUNS tier3.json --scale SCALE_RUNS --p98 RUNS_P98` writes
+[`tier3.json`](tier3.json) (`truth` uses `-a 100000`, `truth_a10k` uses
+`-a 10000`).

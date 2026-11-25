@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Collect Tier 3 results into one JSON (docs/tier3.json) and print the tables used in docs/TIER3.md.
 
-    summarize.py /home/user/work/t3/runs docs/tier3.json [--scale /home/user/work/scale/runs]
+    summarize.py /home/user/work/t3/runs docs/tier3.json [--scale /home/user/work/scale/runs] [--p98 /home/user/work/t3/runs_p98]
+
+Each graph's "truth" uses vcfbub -l 0 -a 100000 (PGGB's default); "truth_a10k" (where scored) uses -a 10000.
 """
 import argparse, glob, json, os
 
@@ -36,7 +38,8 @@ def run_summary(rd):
     mono = c["monolithic"]; mm = meta(os.path.join(rd, "monolithic"))
     out = {"monolithic": {"nodes": mono["nodes"], "bp": mono["total_bp"], "wall_s": mm.get("wall_seconds"),
                           "cpu_s": mm.get("cpu_seconds"), "peak_rss_mb": mm.get("peak_rss_mb"),
-                          "truth": truth(os.path.join(rd, "truth_monolithic.json"))}}
+                          "truth": truth(os.path.join(rd, "truth_monolithic.json")),
+                          "truth_a10k": truth(os.path.join(rd, "truth_monolithic_a10k.json"))}}
     names = [k for k in c if isinstance(c[k], dict) and "nodes" in c[k] and k != "monolithic"]
     for extra in ("lace_windows0", "sdgroup"):
         if os.path.exists(os.path.join(rd, extra, "comparison.json")):
@@ -53,7 +56,8 @@ def run_summary(rd):
         out[n] = {"nodes": e["nodes"], "bp": e["total_bp"], "excess_bp": e["total_bp"] - mono["total_bp"],
                   "haplotypes_identical": f'{e["haplotypes_identical_to_monolithic"]}/{e["haplotypes"]}',
                   "f1_vs_mono_exact": e["variants_vs_monolithic"]["f1"], **compute(ms),
-                  "truth": truth(os.path.join(rd, f"truth_{n}.json"))}
+                  "truth": truth(os.path.join(rd, f"truth_{n}.json")),
+                  "truth_a10k": truth(os.path.join(rd, f"truth_{n}_a10k.json"))}
         if "groups" in e:
             out[n]["groups"] = e["groups"]
     return out
@@ -61,7 +65,7 @@ def run_summary(rd):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("runs"); ap.add_argument("out"); ap.add_argument("--scale")
+    ap.add_argument("runs"); ap.add_argument("out"); ap.add_argument("--scale"); ap.add_argument("--p98")
     a = ap.parse_args()
     res = {}
     for rd in sorted(glob.glob(os.path.join(a.runs, "*", "rep*"))):
@@ -73,6 +77,10 @@ def main():
                 s = run_summary(rd)
                 s["seam_metrics"] = json.load(open(os.path.join(rd, "seam_metrics.json")))
                 res["scaling/" + os.path.relpath(rd, a.scale)] = s
+    if a.p98:
+        for rd in sorted(glob.glob(os.path.join(a.p98, "*", "rep*"))):
+            if os.path.exists(os.path.join(rd, "comparison.json")):
+                res["p98/" + os.path.relpath(rd, a.p98)] = run_summary(rd)
     json.dump({"date": "2026-11-25", "runs": res}, open(a.out, "w"), indent=1)
     for k, v in res.items():
         print(f"## {k}")

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Score a graph's variant calls against the assembly-based truth calls, per haplotype.
 
-Graph calls: vg deconstruct -a on the GRCh38 path, vcfbub -l 0 -a 100000 (top level, bubbles <= 100 kb) and
+Graph calls: vg deconstruct -a on the GRCh38 path, vcfbub -l 0 -a 100000 (top level, bubbles <= 100 kb; --bub to change) and
 vcfwave (as in the PGGB pipeline) to break bubbles into primitive alleles, then one haploid VCF per
 SAMPLE#HAP, left-aligned with bcftools norm. Truth: truth_calls.py output for the same haplotype,
 normalised the same way. truvari bench runs inside each haplotype's callable BED, once on all sizes
@@ -24,10 +24,10 @@ def docker(cmd, mounts):
     return subprocess.run(args + [IMG, "bash", "-c", cmd], check=True, capture_output=True, text=True).stdout
 
 
-def graph_vcf(gfa, out, chrom, region_start, ref):
+def graph_vcf(gfa, out, chrom, region_start, ref, bub="-l 0 -a 100000"):
     d = os.path.dirname(os.path.abspath(gfa))
     raw = docker(f"vg deconstruct -P GRCh38 -a {os.path.abspath(gfa)} 2>/dev/null > /tmp/d.vcf && "
-                 f"vcfbub -l 0 -a 100000 --input /tmp/d.vcf > /tmp/b.vcf && vcfwave -I 1000 /tmp/b.vcf 2>/dev/null", [d])
+                 f"vcfbub {bub} --input /tmp/d.vcf > /tmp/b.vcf && vcfwave -I 1000 /tmp/b.vcf 2>/dev/null", [d])
     with open(out, "w") as fh:
         for line in raw.splitlines():
             if line.startswith("##contig"):
@@ -131,12 +131,14 @@ def main(argv=None):
     ap.add_argument("--ref", required=True); ap.add_argument("--truth", required=True, help="prefix: PREFIX_SAMPLE_HAP.vcf/.bed")
     ap.add_argument("--haps", nargs="+", required=True); ap.add_argument("--segdups", required=True)
     ap.add_argument("--truvari", required=True)
+    ap.add_argument("--bub", default="-l 0 -a 100000",
+                    help="vcfbub options; the default is the PGGB pipeline's (sensitivity check: '-l 0 -a 10000')")
     a = ap.parse_args(argv)
     SD = load_bed(a.segdups, a.chrom)
     work = os.path.splitext(a.out_json)[0] + "_work"
     os.makedirs(work, exist_ok=True)
-    gv = graph_vcf(a.gfa, os.path.join(work, "graph.vcf"), a.chrom, a.region_start, a.ref)
-    result = {"gfa": a.gfa, "haps": {}}
+    gv = graph_vcf(a.gfa, os.path.join(work, "graph.vcf"), a.chrom, a.region_start, a.ref, a.bub)
+    result = {"gfa": a.gfa, "vcfbub": a.bub, "haps": {}}
     totals = {m: {k: {"sd": 0, "other": 0} for k in ("tp-base", "fn", "tp-comp", "fp")} for m in ("all", "sv")}
     for h in a.haps:
         s, hp = h.split("#")
