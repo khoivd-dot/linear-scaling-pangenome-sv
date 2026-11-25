@@ -28,7 +28,7 @@ In the sources searched on 2026-11-24 (Section 6 lists them), we did not find a 
 
 ### 2.1 Data
 
-Assemblies came from HPRC release 2 [6]. The pilot and Tier 1 used both haplotypes of HG00673 and HG00733, which were also the two samples in the duplication-region and truth-set experiments. For each haplotype, the contig holding the region was identified from the release's Minigraph-Cactus GRCh38 chains and extracted with remote `samtools faidx` [citation needed: samtools], so no whole assembly was downloaded. GRCh38 sequence came from Ensembl release 112. Records follow the PanSN naming convention (sample#haplotype#contig) [18].
+Assemblies came from HPRC release 2 [6]. The pilot and Tier 1 used both haplotypes of HG00673 and HG00733, which were also the two samples in the duplication-region and truth-set experiments. For each haplotype, the contig holding the region was identified from the release's Minigraph-Cactus GRCh38 chains and extracted with remote `samtools faidx` [26], so no whole assembly was downloaded. GRCh38 sequence came from Ensembl release 112. Records follow the PanSN naming convention (sample#haplotype#contig) [18].
 
 For the scaling experiment, 18 further samples were drawn at random (seed 1) from the 229 release 2 samples whose chr21:19.95-21.05 Mb lies on a single Minigraph-Cactus chain in both haplotypes. The sets were nested: the first 5, 10 or 20 samples gave N = 10, 20 or 40 haplotypes. GRCh38 was added to every build, so a build at N haplotypes has N + 1 paths. Tier 1 used four haplotypes plus GRCh38 (five paths).
 
@@ -45,7 +45,7 @@ Table 1. Regions. Haplotype lengths are the projected per-haplotype sequences fo
 
 ### 2.3 Projecting cuts onto haplotypes
 
-Each haplotype contig was aligned to the reference region with minimap2 2.28 (`-x asm5 -c --eqx`) [citation needed: minimap2]. In Tier 3 the same alignments were made with mappy 2.31, minimap2's Python binding, behind a small command-line shim. `project_chunks.py` keeps primary alignments with MAPQ of at least 20, groups them by contig and strand, and takes the colinear chain with the most aligned reference bases, found by an O(n²) dynamic programme over compatible predecessors. The pieces of the chain are merged into one alignment, with the stretch between two pieces recorded as a reference gap plus a haplotype gap, so that every reference coordinate projects to exactly one haplotype coordinate. Each chunk boundary is projected through this alignment, and adjacent chunks therefore meet exactly on every haplotype.
+Each haplotype contig was aligned to the reference region with minimap2 2.28 (`-x asm5 -c --eqx`) [27]. In Tier 3 the same alignments were made with mappy 2.31, minimap2's Python binding, behind a small command-line shim. `project_chunks.py` keeps primary alignments with MAPQ of at least 20, groups them by contig and strand, and takes the colinear chain with the most aligned reference bases, found by an O(n²) dynamic programme over compatible predecessors. The pieces of the chain are merged into one alignment, with the stretch between two pieces recorded as a reference gap plus a haplotype gap, so that every reference coordinate projects to exactly one haplotype coordinate. Each chunk boundary is projected through this alignment, and adjacent chunks therefore meet exactly on every haplotype.
 
 The dynamic programme replaced a greedy left-to-right chain during Tier 2. In 22q11.2 the greedy chain locked onto pieces that mapped to the wrong LCR copy and covered 0.2 to 2% of the region. The chained projection covers 0.89 to 0.96, no cut falls in a chain gap, and all 40 chr21 projections are byte-identical to those made with the greedy chain. Every zero-overlap chunking was checked to concatenate back to the monolithic haplotype sequences base for base.
 
@@ -97,7 +97,7 @@ To score accuracy we built per-haplotype truth calls for HG00673 and HG00733 fro
 
 Table 3. Truth set coverage.
 
-Graph calls were made with `vg deconstruct -a` on the GRCh38 path, then `vcfbub -l 0 -a 100000` and `vcfwave` as in the PGGB pipeline [citation needed: vcfbub, vcfwave], split into one haploid VCF per haplotype, and left-aligned together with the truth calls by `bcftools norm` [citation needed: bcftools]. truvari 5.5.0 [21] compared them inside each haplotype's callable regions, once on all sizes (`--pick multi --refdist 500 --pctseq 0.7 --pctsize 0.7`) and once on SVs of 50 bp or more. Calls were stratified by overlap with the GIAB v3.3 segmental duplication track (`GRCh38_segdups.bed`) [23].
+Graph calls were made with `vg deconstruct -a` on the GRCh38 path, then `vcfbub -l 0 -a 100000` and `vcfwave` as in the PGGB pipeline [28, 29], split into one haploid VCF per haplotype, and left-aligned together with the truth calls by `bcftools norm` [26]. truvari 5.5.0 [21] compared them inside each haplotype's callable regions, once on all sizes (`--pick multi --refdist 500 --pctseq 0.7 --pctsize 0.7`) and once on SVs of 50 bp or more. Calls were stratified by overlap with the GIAB v3.3 segmental duplication track (`GRCh38_segdups.bed`) [23].
 
 The truth set is weakest where the question is hardest. Inside duplications the assembly alignment itself can be wrong, and the callable filter drops 10 to 25% of the duplicated sequence. The comparison therefore says which graph agrees with HPRC's assembly-to-reference alignments, the usual dipcall-style benchmark. It does not establish which graph is correct base by base.
 
@@ -107,7 +107,7 @@ The truth set is weakest where the question is hardest. Inside duplications the 
 
 ### 2.10 Recombination maps and block compression
 
-To check whether the haploblocks.org cuts lie on hotspots, we used five GRCh38 maps from the stdpopsim catalogue: HapMap phase II [24], pyrho maps for YRI, CEU and CHB [25], and the deCODE sex-averaged map. In that catalogue the deCODE map is the 2010 pedigree map lifted to GRCh38 in 10 kb bins [citation needed: deCODE 2010 map; not the 2019 map]. A hotspot was a stretch with at least 5 times the chromosome-wide mean rate (10 times in a sensitivity check). The statistic was the share of the 19 cuts within 5 kb of a hotspot, compared with 1,000 sets of 19 random positions in the region.
+To check whether the haploblocks.org cuts lie on hotspots, we used five GRCh38 maps from the stdpopsim catalogue: HapMap phase II [24], pyrho maps for YRI, CEU and CHB [25], and the deCODE sex-averaged map. In that catalogue the deCODE map is the 2010 pedigree map lifted from GRCh36 to GRCh38 by stdpopsim [30], not the 2019 sequence-level map. A hotspot was a stretch with at least 5 times the chromosome-wide mean rate (10 times in a sensitivity check). The statistic was the share of the 19 cuts within 5 kb of a hotspot, compared with 1,000 sets of 19 random positions in the region.
 
 To test whether hotspot-bounded blocks hold more identical haplotypes, we counted, for every block of at least 5 kb and N = 10, 20 and 40, the distinct haplotype sequences by exact identity, and computed a length-weighted duplicate fraction, 1 - distinct / N. The 19 cuts make 20 blocks. The null distribution was 20 layouts with the same block sizes shuffled and rotated around the region.
 
@@ -383,7 +383,7 @@ Funding, competing interests, author contributions and the statement on AI assis
 
 ## 6. References
 
-Numbering is by first citation in this draft. All entries are taken from the project's citation base (`docs/paper/related_work.md`, compiled 2026-11-24); entries that were not verified there are marked [citation to verify]. Software without a reference in that base is marked [citation needed] in the text (samtools, minimap2, vcfbub, vcfwave, bcftools, the deCODE 2010 map).
+Numbering is by first citation in this draft. All entries are taken from the project's citation base (`docs/paper/related_work.md`, compiled 2026-11-24); entries that were not verified there are marked [citation to verify]. References 26-30 were added on 2026-11-25 after checking each record online (PMC, PubMed, the vcfbub repository and the stdpopsim catalogue source) and are numbered after the rest; renumber by first citation before submission.
 
 1. Garrison E, Guarracino A, et al. 2024. Building pangenome graphs. Nature Methods 21(11):2008-2012. DOI 10.1038/s41592-024-02430-3. [full author list to verify]
 2. wfmash (Guarracino A, Garrison E, et al.). Software, no dedicated paper. https://github.com/waveygang/wfmash ; Zenodo DOI 10.5281/zenodo.6949373.
@@ -410,3 +410,8 @@ Numbering is by first citation in this draft. All entries are taken from the pro
 23. Dwarshuis N, Kalra D, McDaniel J, et al. 2024. The GIAB genomic stratifications resource for human reference genomes. Nature Communications 15:9029. DOI 10.1038/s41467-024-53260-y. [author list to verify]
 24. International HapMap Consortium. 2007. A second generation human haplotype map of over 3.1 million SNPs. Nature 449:851-861. DOI 10.1038/nature06258.
 25. Spence JP, Song YS. 2019. Inference and analysis of population-specific fine-scale recombination maps across 26 diverse human populations. Science Advances 5(10):eaaw9206.
+26. Danecek P, Bonfield JK, Liddle J, Marshall J, Ohan V, Pollard MO, Whitwham A, Keane T, McCarthy SA, Davies RM, Li H. 2021. Twelve years of SAMtools and BCFtools. GigaScience 10(2):giab008. DOI 10.1093/gigascience/giab008.
+27. Li H. 2018. Minimap2: pairwise alignment for nucleotide sequences. Bioinformatics 34(18):3094-3100. DOI 10.1093/bioinformatics/bty191.
+28. vcfbub: popping bubbles in vg deconstruct VCFs. Software, no dedicated paper. https://github.com/pangenome/vcfbub .
+29. Garrison E, Kronenberg ZN, Dawson ET, Pedersen BS, Prins P. 2022. A spectrum of free software tools for processing the VCF variant call format: vcflib, bio-vcf, cyvcf2, hts-nim and slivar. PLOS Computational Biology 18(5):e1009123. DOI 10.1371/journal.pcbi.1009123. (vcfwave is part of vcflib.)
+30. Kong A, Thorleifsson G, Gudbjartsson DF, Masson G, Sigurdsson A, et al. 2010. Fine-scale recombination rate differences between sexes, populations and individuals. Nature 467:1099-1103. DOI 10.1038/nature09525.
