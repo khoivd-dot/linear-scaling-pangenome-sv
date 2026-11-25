@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""Host stand-in for `minimap2 -x PRESET -c --eqx [-t N] TARGET.fa QUERY.fa` using mappy (minimap2's own Python binding)."""
+import sys, mappy
+args = sys.argv[1:]; preset = "asm5"; threads = 2; pos = []
+i = 0
+while i < len(args):
+    a = args[i]
+    if a == "-x": preset = args[i + 1]; i += 2; continue
+    if a == "-t": threads = int(args[i + 1]); i += 2; continue
+    if a in ("-c", "--eqx", "--cs"): i += 1; continue
+    pos.append(a); i += 1
+target, query = pos
+al = mappy.Aligner(target, preset=preset, n_threads=threads, extra_flags=0x4000000)  # MM_F_EQX
+if not al: sys.exit("index failed")
+out = sys.stdout
+for name, seq, _ in mappy.fastx_read(query):
+    for h in al.map(seq):
+        out.write("\t".join(map(str, [name, len(seq), h.q_st, h.q_en, "+" if h.strand > 0 else "-",
+            h.ctg, h.ctg_len, h.r_st, h.r_en, h.mlen, h.blen, h.mapq,
+            "tp:A:" + ("P" if h.is_primary else "S"), "cg:Z:" + h.cigar_str])) + "\n")

@@ -1,0 +1,6 @@
+#!/usr/bin/env python3
+"""Host shim: `samtools faidx FILE [REGION...]` via pysam (no samtools on this host)."""
+import sys, pysam
+if len(sys.argv) < 3 or sys.argv[1] != "faidx":
+    sys.exit("shim supports only: samtools faidx FILE [REGION...]")
+sys.stdout.write(pysam.faidx(*sys.argv[2:]))
