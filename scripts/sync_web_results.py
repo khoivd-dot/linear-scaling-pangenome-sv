@@ -18,6 +18,7 @@ def main():
     # Only compact JSON files go to web/public/data/ - no GFA/FASTA/VCF.
     sources = [
         ("results/benchmark/report.json", "web/public/data/latest.json"),
+        ("results/web/latest.json", "web/public/data/latest.json"),  # exporter summary wins over report.json
         ("results/web/manifest.json", "web/public/data/manifest.json"),
         ("results/web/overview.json", "web/public/data/overview.json"),
         ("results/web/path_diagnostics.json", "web/public/data/path_diagnostics.json"),

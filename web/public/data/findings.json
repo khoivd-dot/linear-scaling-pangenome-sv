@@ -1,0 +1,115 @@
+{
+ "schema_version": "1",
+ "findings": [
+  {
+   "step": "Pilot",
+   "question": "Do chunks cut at recombination hotspots match the monolithic graph better than fixed windows?",
+   "finding": "Hotspot chunks looked closer to monolithic: +14 bp of node sequence, against +4,723 bp for fixed 400 kb windows with 50 kb overlap.",
+   "status": "done",
+   "writeup": {
+    "label": "RECOMBINATION_CHUNKS.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/RECOMBINATION_CHUNKS.md"
+   }
+  },
+  {
+   "step": "Tier 1",
+   "question": "Did the gain come from the hotspots or from dropping the overlap?",
+   "finding": "From dropping the overlap. Zero-overlap cuts anywhere (fixed, shifted, 20 random sets) leave no extra sequence at seams. Hotspot cuts score at the random median: truvari F1 0.9985 vs 0.9984.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER1_CONTROLS.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER1_CONTROLS.md"
+   }
+  },
+  {
+   "step": "Tier 1",
+   "question": "How far apart are two monolithic builds of the same input?",
+   "finding": "PGGB is not deterministic: two monolithic builds differ by up to 9 nodes / 47 bp.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER1_CONTROLS.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER1_CONTROLS.md"
+   }
+  },
+  {
+   "step": "Tier 2",
+   "question": "Do seams stay clean as haplotypes are added, and what does chunking cost?",
+   "finding": "Seams stay clean up to 40 haplotypes. At N=40 three chunks use the same CPU as monolithic (1,790 vs 1,775 s), the longest chunk finishes in 40% of monolithic wall time, and peak memory is ~970 MB per chunk vs 2.3 GB monolithic.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER2.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER2.md"
+   }
+  },
+  {
+   "step": "Tier 2",
+   "question": "Does chunking hold up in segmental duplications (17q21.31, 22q11.2)?",
+   "finding": "Less well. Chunked graphs carry ~6.5% more sequence and F1 vs monolithic is 0.78–0.88, where monolithic vs monolithic gives 0.97–0.98. At least 92% of the disagreement sits in duplicated blocks.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER2.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER2.md"
+   }
+  },
+  {
+   "step": "Tier 2",
+   "question": "Why did large inputs come out under-collapsed?",
+   "finding": "A seqwish bug: PGGB v0.6.0 passes -B 10M unparsed, which under-collapses inputs over 1 Mb (22q11.2: 12.3 Mb vs 4.3 Mb of node sequence). A numeric -B fixes it.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER2.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER2.md"
+   }
+  },
+  {
+   "step": "Tier 3",
+   "question": "Where chunked and monolithic graphs disagree, which one matches assembly-based truth?",
+   "finding": "The chunked one. On chr21 both score F1 0.981. In 22q11.2 chunked scores 0.962 against 0.880 monolithic (0.937 vs 0.719 inside LCR22s), because monolithic PGGB at -p 90 merges paralogous copies: 9% of each haplotype revisits nodes, against 2.4% chunked.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER3.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"
+   }
+  },
+  {
+   "step": "Tier 3",
+   "question": "Does building the chunks that share a duplication in one job help?",
+   "finding": "No. It brings the graph closer to monolithic and further from the truth (22q11.2 F1 0.889), collapses paralogs harder than monolithic, and the grouped job takes as long as the whole monolithic build.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER3.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"
+   }
+  },
+  {
+   "step": "Tier 3",
+   "question": "What does chunking cost and save at 10 Mb?",
+   "finding": "Monolithic chr21:20-30 Mb took 582 s and 2.8 GB. 1 Mb chunks: 1.22x the CPU, longest 109 s, 971 MB each; 2.5 Mb chunks: 1.06x the CPU. Truth F1 0.979 for every graph.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER3.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"
+   }
+  },
+  {
+   "step": "Tier 3",
+   "question": "Do the results hold in a second replicate?",
+   "finding": "Yes. Rebuilding every truth-set graph and the 10/20/40-haplotype scaling series moved truth F1 by 0.015 or less and kept the ranking: fixed zero-overlap windows beat hotspot cuts in 5 of 6 scaling comparisons.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER3.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"
+   }
+  },
+  {
+   "step": "Tier 3",
+   "question": "Do PGGB's recommended human settings (-p 98 -s 10k -k 47) remove the paralog problem?",
+   "finding": "They reduce it (monolithic revisits 6-8% vs 9-11%) but chunked graphs still score higher: F1 0.94/0.97 vs 0.86/0.93. They also exposed a calling trap: PGGB's vcfbub -a 100000 dropped most monolithic calls (F1 0.24-0.47) because the reference path loops.",
+   "status": "done",
+   "writeup": {
+    "label": "TIER3.md",
+    "url": "https://github.com/khoivd-dot/linear-scaling-pangenome-sv/blob/main/docs/TIER3.md"
+   }
+  }
+ ]
+}

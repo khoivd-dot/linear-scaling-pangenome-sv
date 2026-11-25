@@ -6,8 +6,9 @@ the exact source_contig for each independently mapped chunk.
 """
 import argparse, csv, hashlib, json, os, subprocess, sys, yaml
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 from pipeline.prepare.faidx_utils import faidx_extract, ensure_faidx, _revcomp
+from pipeline.parallel.chunk_manifest import update_chunk_status, progress
 
 def load_manifest(path="work/chunks/chunk_manifest.tsv"):
     if not os.path.exists(path): return []
@@ -236,7 +237,11 @@ def main():
         for c in chunks:
             cid = c["chunk_id"]
             if not os.path.exists(f"work/chunks/{cid}.gfa"):
+                update_chunk_status(cid, "running")
                 subprocess.run(["bash","pipeline/parallel/build_chunk.sh",cid], check=False)
+            # build_chunk.sh copies <cid>/final.gfa to <cid>.gfa
+            update_chunk_status(cid, "done" if os.path.exists(f"work/chunks/{cid}.gfa") else "failed")
+        print(progress(load_manifest()))
     print(f"Done. {len(chunks)} chunks. Fresh: {fresh_count}, Stale: {stale_count}")
 
 if __name__=="__main__": main()

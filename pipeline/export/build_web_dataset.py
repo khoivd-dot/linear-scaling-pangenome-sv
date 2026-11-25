@@ -332,6 +332,7 @@ def main():
             "edges": g.edge_count(),
             "paths": g.path_count(),
             "walks": g.walk_count(),
+            "sequence_bp": sum(seg.length for seg in g.segments.values()),
         }
 
     samples = _manifest_samples(samples_by_graph)
@@ -427,6 +428,17 @@ def main():
     with open("results/web/overview.json", "w") as f:
         json.dump(overview, f, indent=2)
 
+    # latest.json: the summary the web Results tab reads (replaces the demo report).
+    latest = {
+        "schema_version": "2",
+        "data_mode": data_mode,
+        "run": manifest["run"],
+        "target": target,
+        "metrics": {("merged" if k == "stitched" else k): v for k, v in graph_meta.items()},
+    }
+    with open("results/web/latest.json", "w") as f:
+        json.dump(latest, f, indent=2)
+
     # Path diagnostics
     diag_rows = []
     for label, path in graphs.items():
@@ -458,6 +470,7 @@ def main():
           f"{written} sample graph JSON(s), {len(chunks)} chunk(s)")
     print("  manifest  -> results/web/manifest.json")
     print("  overview  -> results/web/overview.json")
+    print("  latest    -> results/web/latest.json")
     print("  path diag -> results/web/path_diagnostics.json")
 
 

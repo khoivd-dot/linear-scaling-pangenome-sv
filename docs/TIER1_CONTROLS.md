@@ -86,8 +86,9 @@ What the numbers say:
 - **The overlap explains the pilot.** The 50 kb overlap adds 4,723 bp at the
   seams in every replicate, and all 7 of its truvari false negatives sit there.
   Remove the overlap and the seams are clean wherever the cut falls: the
-  near-cut excess is 0 bp in 18 of 20 random sets and in every fixed, shifted
-  and hotspot chunking (the two exceptions are +21 and -22 bp). The end-to-end join
+  near-cut excess is 0 bp in 18 of 20 random sets and in every fixed and
+  hotspot chunking. The exceptions, two random sets and both shifted sets, are
+  +21 or -22 bp, inside the 47 bp that two monolithic builds differ by. The end-to-end join
   added in the pilot is the useful part.
 - **Hotspot placement shows no advantage at N = 5.** On extra sequence, the
   hotspot run beats 14 of 20 random sets; on truvari F1 it sits at the random

@@ -1,120 +1,33 @@
 {
-  "data_mode": "synthetic",
+  "schema_version": "2",
+  "data_mode": "real",
   "run": {
-    "run_id": "demo",
-    "pipeline_version": "0.1.0",
-    "mode": "demo",
-    "data_mode": "synthetic",
-    "strategy": "overlap_aware",
-    "timestamp": "2026-08-28T12:20:00.293960"
+    "run_id": "latest",
+    "git_sha": "335d0a3a1ccd",
+    "generated_at": "2026-11-24T21:17:47Z",
+    "data_mode": "real",
+    "scientific_status": "Full real HPRC dataset."
   },
   "target": {
     "reference": "GRCh38",
     "chromosome": "chr21",
-    "start": 0,
-    "end": 2000
+    "start": 20000000,
+    "end": 21000000
   },
-  "samples": [
-    "HG00673",
-    "HG00733"
-  ],
   "metrics": {
     "baseline": {
-      "nodes": 502,
-      "edges": 497
+      "nodes": 10400,
+      "edges": 14201,
+      "paths": 5,
+      "walks": 0,
+      "sequence_bp": 1006553
     },
     "merged": {
-      "nodes": 511,
-      "edges": 506,
+      "nodes": 10393,
+      "edges": 14190,
       "paths": 5,
-      "components": 5
+      "walks": 0,
+      "sequence_bp": 1006506
     }
-  },
-  "stitch": {
-    "status": "PASS",
-    "strategy": "overlap_aware"
-  },
-  "equivalence": {
-    "verdict": "EQUIVALENT",
-    "n_fail": 0,
-    "checks": [
-      {
-        "metric": "nodes",
-        "baseline": 502,
-        "merged": 511,
-        "delta_pct": 1.79,
-        "strict": false,
-        "status": "PASS"
-      },
-      {
-        "metric": "edges",
-        "baseline": 497,
-        "merged": 506,
-        "delta_pct": 1.81,
-        "strict": false,
-        "status": "PASS"
-      },
-      {
-        "metric": "paths",
-        "baseline": 5,
-        "merged": 5,
-        "delta_pct": 0.0,
-        "strict": false,
-        "status": "PASS"
-      },
-      {
-        "metric": "walks",
-        "baseline": 0,
-        "merged": 0,
-        "delta_pct": 0.0,
-        "strict": false,
-        "status": "PASS"
-      },
-      {
-        "metric": "component_count",
-        "baseline": 5,
-        "merged": 5,
-        "delta_pct": 0.0,
-        "strict": false,
-        "status": "PASS"
-      },
-      {
-        "metric": "paths_plus_walks",
-        "baseline": 5,
-        "merged": 5,
-        "delta_pct": 0.0,
-        "strict": false,
-        "status": "PASS"
-      }
-    ]
-  },
-  "boundaries": [
-    {
-      "boundary": "chunk_0001--chunk_0002",
-      "left_chunk": "chunk_0001",
-      "right_chunk": "chunk_0002",
-      "reference_overlap_bp": 100,
-      "anchor_found": true,
-      "haplotypes_preserved": true,
-      "haplotypes_joined": 5,
-      "haplotypes_unjoined": 0,
-      "status": "PASS",
-      "message": "stitched 5 haplotype(s) at overlap midpoint"
-    },
-    {
-      "boundary": "chunk_0002--chunk_0003",
-      "left_chunk": "chunk_0002",
-      "right_chunk": "chunk_0003",
-      "reference_overlap_bp": 100,
-      "anchor_found": true,
-      "haplotypes_preserved": true,
-      "haplotypes_joined": 5,
-      "haplotypes_unjoined": 0,
-      "status": "PASS",
-      "message": "stitched 5 haplotype(s) at overlap midpoint"
-    }
-  ],
-  "bubbles": [],
-  "graphWindow": {},
-  "validation_errors": 0
+  }
 }
