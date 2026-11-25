@@ -41,8 +41,8 @@ how cost and accuracy behave at a larger scale.
 - **impg lace and our stitch give identical graphs** on all 4 regions (same
   nodes, sequence and truth scores).
 
-PENDING: second replicate of the duplication regions, the scaling replicate
-(E3) and the recommended-settings control (E5).
+PENDING: second replicate of the duplication regions and the recommended-settings
+control (E5). The scaling replicate (E3) is in.
 
 ## Truth set
 
@@ -177,7 +177,48 @@ much CPU again; at 1 Mb and above the overhead falls to 6 to 22%. With one
 worker per chunk the 10 Mb region finishes 3 to 8 times sooner and never needs
 more than about 1 GB.
 
-## E3: second scaling replicate (running)
+## E3: second scaling replicate
+
+Tier 2's haplotype-scaling series (chr21:20-21 Mb, GRCh38 plus 10, 20 and 40
+HPRC haplotypes, the same samples in the same order, seed 1) ran once. E3
+repeats it with the same inputs and the same seqwish `-B` default as rep1
+(`PGGB_TRANSCLOSE_BATCH=pggb-default`; at 1 Mb the bug does not apply). Each
+chunked graph is scored against the monolithic build of its own replicate with
+`seam_metrics.py`, as in Tiers 1 and 2.
+
+| N | Graph | Extra bp near cuts, rep1 / rep2 | truvari F1 vs monolithic, rep1 / rep2 |
+| --- | --- | --- | --- |
+| 10 | windows0 | 0 / 0 | 0.9982 / 0.9956 |
+| 10 | hotspots300 | 0 / 0 | 0.9977 / 0.9962 |
+| 10 | hotspots50 | 101 / 100 | 0.9951 / 0.9963 |
+| 20 | windows0 | 0 / 4 | 0.9978 / 0.9982 |
+| 20 | hotspots300 | -2 / -2 | 0.9930 / 0.9931 |
+| 20 | hotspots50 | 50 / 7 | 0.9929 / 0.9923 |
+| 40 | windows0 | 0 / 0 | 0.9961 / 0.9934 |
+| 40 | hotspots300 | 1 / 0 | 0.9930 / 0.9861 |
+| 40 | hotspots50 | 30 / -35 | 0.9905 / 0.9888 |
+
+Every seam passed and every haplotype path was identical to the monolithic
+one in both replicates (2/2 or 9/9 seams, 11/11, 21/21 and 41/41 paths).
+
+- **The ranking holds.** Fixed zero-overlap windows scored higher than both
+  hotspot layouts in 5 of the 6 replicate-by-N comparisons; the exception
+  (N = 10, rep2) is 0.9956 against 0.9962 and 0.9963. At N = 20 and 40
+  windows0 is ahead in both replicates, by 0.003 to 0.007.
+- **Agreement with monolithic falls slowly with N** for every chunking, from
+  about 0.996 at N = 10 to 0.986 to 0.993 at N = 40. None of the extra
+  disagreement sits at the cuts for the three-chunk layouts; with ten chunks
+  (hotspots50) up to 46 of 99 false positives at N = 40 are within 10 kb of a
+  cut. SVs of 50 bp or more missed against monolithic rose with N in rep2
+  as in rep1: none for windows0 at N = 10 and 20, 4 of the monolithic
+  graph's SVs at N = 40 (rep1: 0), and 1 to 7 for the hotspot layouts.
+- **Compute repeats closely.** At N = 40 the monolithic build took 525 s wall,
+  1,745 s CPU and 2.2 GB (rep1: 536 s, 1,775 s, 2.3 GB). Three windows0 chunks
+  used 1,779 s CPU (1.02 times), the longest finished in 211 s (40% of
+  monolithic) and none used more than 971 MB.
+- **Monolithic builds drift between replicates** by 4 to 222 nodes (13,362
+  against 13,442 at N = 10; 22,898 against 23,120 at N = 40), the same
+  run-to-run noise seen in Tier 1, now growing with N.
 
 ## E5: PGGB's recommended human settings (running)
 

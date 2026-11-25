@@ -120,7 +120,7 @@ PGGB was not deterministic between runs of the pinned image (Section 3.1), so re
 | Pilot | 1 |
 | Tier 1: monolithic, windows, windows0, hotspots300, hotspots50 | 3 |
 | Tier 1: shift50, shift100, 20 random cut sets | 1 |
-| Tier 2: scaling at N = 10, 20, 40 | 1 (second replicate, E3, [PENDING E3: rep2 numbers]) |
+| Tier 2: scaling at N = 10, 20, 40 | 2 (rep1 in Tier 2, rep2 in Tier 3 as E3) |
 | Tier 2: duplication regions against monolithic | 2 |
 | Tier 3: truth comparison and duplication-aware groups (E1, E2) | 1 (second replicate of the duplication regions [PENDING rep2]) |
 | Tier 3: 10 Mb (E4) | 1 |
@@ -235,8 +235,11 @@ Monolithic CPU time grew faster than linearly with haplotype count, from 364 s a
 | 10 | 13,362 | 1,008,347 | 163 | 364 | 972 |
 | 20 | 18,214 | 1,011,283 | 250 | 708 | 1,197 |
 | 40 | 22,898 | 1,013,701 | 536 | 1,775 | 2,335 |
+| 10, rep2 | 13,442 | 1,008,293 | 153 | 365 | 972 |
+| 20, rep2 | 18,218 | 1,011,246 | 249 | 712 | 1,181 |
+| 40, rep2 | 23,120 | 1,013,737 | 525 | 1,745 | 2,210 |
 
-Table 10. Monolithic builds of chr21:20-21 Mb. N = 10, 20, 40: one replicate; second replicate [PENDING E3: rep2 numbers].
+Table 10. Monolithic builds of chr21:20-21 Mb. Rows without a replicate label are rep1 (Tier 2); rep2 is E3, with the same inputs and settings.
 
 With three zero-overlap chunks the seams held at every N: extra node sequence within 10 kb of a cut was between -2 and +1 bp, and every haplotype path matched the monolithic graph (Table 11). The truvari errors counted as near a cut were not at the cut. At N = 20 the 6 to 7 near-cut errors of windows0 and hotspots300 are one locus at about 20.657 Mb, 9 kb before one cut and 7 kb after the other. Ten small chunks were worse: they added 30 to 101 bp near cuts, lost 1 to 5 SVs, and 46 of their 56 near-cut errors across the three values of N sat 3 to 5 kb after the cut at 20,583,159. That distance is close to the 5 kb wfmash segment length, which suggests that the first or last segment of a chunk maps differently; we did not test this.
 
@@ -252,9 +255,23 @@ With three zero-overlap chunks the seams held at every N: extra node sequence wi
 | Longest chunk, wall (s) | 93 / 96 / 79 | 123 / 123 / 104 | 215 / 210 / 163 |
 | Peak memory, largest chunk (MB) | 969 / 968 / 968 | 970 / 969 / 968 | 970 / 970 / 853 |
 
-Table 11. Chunked builds against the monolithic build of the same N (windows0 / hotspots300 / hotspots50), one replicate. Second replicate: [PENDING E3: rep2 numbers].
+Table 11. Chunked builds against the monolithic build of the same N (windows0 / hotspots300 / hotspots50), rep1.
 
-Agreement with the monolithic graph drifted down with N. For three chunks, F1 fell from 0.998 at N = 10 to 0.993-0.996 at N = 40. Part of this drift is run-to-run noise: at four haplotypes, monolithic builds already agreed with each other at F1 0.9995, and with one replicate per N we cannot separate the two. [PENDING E3: rep2 numbers] will show how much of the drift is noise.
+| | N = 10 | N = 20 | N = 40 |
+| --- | --- | --- | --- |
+| Extra node sequence within 10 kb of a cut (bp) | 0 / 0 / 100 | 4 / -2 / 7 | 0 / 0 / -35 |
+| Extra node sequence, total (bp) | 54 / 21 / 132 | 7 / 23 / -79 | -15 / -81 / 144 |
+| Haplotypes identical to monolithic | all | all | all |
+| truvari F1 vs monolithic | 0.9956 / 0.9962 / 0.9963 | 0.9982 / 0.9931 / 0.9923 | 0.9934 / 0.9861 / 0.9888 |
+| truvari FN within 10 kb of a cut | 0 / 0 / 2 | 3 / 6 / 22 | 0 / 0 / 36 |
+| SVs (50 bp+) missed | 0 / 2 / 0 | 0 / 1 / 0 | 4 / 7 / 3 |
+| CPU, all chunks (s) | 431 / 435 / 660 | 793 / 810 / 976 | 1,779 / 1,733 / 1,772 |
+| Longest chunk, wall (s) | 86 / 86 / 79 | 122 / 123 / 103 | 211 / 222 / 155 |
+| Peak memory, largest chunk (MB) | 969 / 968 / 968 | 970 / 969 / 968 | 971 / 970 / 777 |
+
+Table 11b. The same comparison for rep2 (E3), each chunked graph against the rep2 monolithic build.
+
+Agreement with the monolithic graph drifted down with N. For three chunks, F1 fell from 0.998 at N = 10 to 0.993-0.996 at N = 40. Part of this drift is run-to-run noise: at four haplotypes, monolithic builds already agreed with each other at F1 0.9995, and the second replicate shows that the noise grows with N too. Rep2 gave 0.993-0.996 at N = 10 and 0.986-0.993 at N = 40, and the two monolithic builds at each N differed by 80, 4 and 222 nodes at N = 10, 20 and 40. The decline with N is therefore present in both replicates, but its size varies between them by up to 0.007, which is as large as the differences between chunkings at a given N. What does repeat is the order: windows0 scored higher than both hotspot layouts in 5 of the 6 replicate-by-N comparisons (the exception, N = 10 rep2, is 0.9956 against 0.9962 and 0.9963), and the three-chunk layouts kept the extra sequence within 10 kb of a cut between -2 and +4 bp in both replicates.
 
 The compute balance shifted with N. At four haplotypes, three chunks used 1.3 to 1.4 times the monolithic CPU time and ten chunks 2.4 to 2.6 times, because each PGGB run carries a fixed cost of roughly a minute at this size. At N = 40, three chunks used the same CPU as monolithic (ratio 0.98 to 1.01; windows0 1,790 s against 1,775 s), the longest chunk finished in 40% of the monolithic wall time, and peak memory per build stayed near 970 MB while the monolithic build reached 2.3 GB.
 
@@ -345,7 +362,7 @@ Table 16. Duplication-aware groups (Tier 3, E2), one replicate [PENDING rep2]. T
 
 **Figure 2: Are the cuts on hotspots, and do hotspot blocks compress?** (a) For each of the five maps at the 5-fold threshold, the share of haploblocks.org cuts within 5 kb of a hotspot against the random-set mean, with p values annotated. Fields: `tier2.json`, fields `map_robustness.results.{HapMapII,PyrhoYRI,PyrhoCEU,PyrhoCHB,DeCodeSexAveraged}_x5.haploblock_cuts_within_5kb`, `.random_cuts_within_5kb_mean`, `.p_value`; the `_x10` entries as a supplementary panel. (b) Duplicate fraction against N for hotspot blocks, with the random-layout median and range as a band. Fields: `block_compression.summary.{10,20,40}.hotspot_blocks`, `.random_median`, `.random_min`, `.random_max`.
 
-**Figure 3: Cost of monolithic and chunked builds.** (a) CPU time against N haplotypes (10, 20, 40, plus the Tier 1 point at 4) for monolithic, windows0, hotspots300 and hotspots50. (b) Wall time: monolithic against longest chunk. (c) Peak memory: monolithic against largest chunk, with the 970 MB floor visible. Fields: `tier2.json`, fields `scaling_rep1.N{10,20,40}/rep1.mono.{cpu,wall,rss}` and `.{windows0,hotspots300,hotspots50}.{cpu_sum,max_wall,max_rss}`; Tier 1 point from `tier1_controls.json`, fields `replicates.rep*.monolithic.{cpu_s,wall_s,peak_rss_mb}`. Second replicate points [PENDING E3: rep2 numbers]. (d) Region length: CPU ratio, longest build and peak memory for the 10 Mb chunkings. Fields: `tier3.json`, fields `runs.r21x/rep1.{monolithic,windows0,windows1m,windows2500k}.{cpu_s,max_wall_s,peak_rss_mb}` (monolithic uses `wall_s`). Note that the JSON key `windows0` in `r21x` is the 25 x 400 kb chunking.
+**Figure 3: Cost of monolithic and chunked builds.** (a) CPU time against N haplotypes (10, 20, 40, plus the Tier 1 point at 4) for monolithic, windows0, hotspots300 and hotspots50. (b) Wall time: monolithic against longest chunk. (c) Peak memory: monolithic against largest chunk, with the 970 MB floor visible. Fields: `tier2.json`, fields `scaling_rep1.N{10,20,40}/rep1.mono.{cpu,wall,rss}` and `.{windows0,hotspots300,hotspots50}.{cpu_sum,max_wall,max_rss}`; Tier 1 point from `tier1_controls.json`, fields `replicates.rep*.monolithic.{cpu_s,wall_s,peak_rss_mb}`. Second replicate points: `tier3.json`, fields `runs.scaling/N{10,20,40}/rep2.{monolithic,windows0,hotspots300,hotspots50}.{cpu_s,max_wall_s,peak_rss_mb}` (monolithic uses `wall_s`). (d) Region length: CPU ratio, longest build and peak memory for the 10 Mb chunkings. Fields: `tier3.json`, fields `runs.r21x/rep1.{monolithic,windows0,windows1m,windows2500k}.{cpu_s,max_wall_s,peak_rss_mb}` (monolithic uses `wall_s`). Note that the JSON key `windows0` in `r21x` is the 25 x 400 kb chunking.
 
 **Figure 4: Segmental duplications against the truth set.** (a) Truth F1 inside SDs and elsewhere for monolithic, windows0 and sdgroup graphs in 17q21.31 and 22q11.2, with chr21 as a control. Fields: `tier3.json`, fields `runs.{r17,r22,r21}/rep1.{monolithic,windows0,sdgroup}.truth.all.sd.f1`, `.truth.all.other.f1`; precision and recall from the same nodes for a supplementary panel. (b) SV F1 with the number of truth SVs annotated: `.truth.sv.total.f1`, `.truth.sv.total.tp_base + .truth.sv.total.fn`. (c) Path revisit share per graph from Table 15. These values are not in `tier3.json`; they come from the `path_revisits.py` output behind TIER3.md and need to be exported before plotting. Mark all panels as one replicate [PENDING rep2] and add E5 panels when available [PENDING E5].
 
@@ -362,7 +379,7 @@ The segmental duplication result changes how chunk boundaries should be viewed. 
 ### Limitations
 
 - Few samples. The truth comparison and duplication regions used two samples (four haplotypes). Scaling reached 40 haplotypes on one 1 Mb region of chr21. Hotspot placement was tested on chr21 and in the two duplication regions only.
-- Replicates. Scaling at N = 10, 20 and 40 has one replicate [PENDING E3: rep2 numbers]; the truth comparison, revisit shares and grouping in the duplication regions have one replicate [PENDING rep2]; random and shifted controls and the 10 Mb runs ran once each.
+- Replicates. Scaling at N = 10, 20 and 40 has two replicates; the truth comparison, revisit shares and grouping in the duplication regions have one replicate [PENDING rep2]; random and shifted controls and the 10 Mb runs ran once each.
 - A weak truth set where it matters. The truth calls come from HPRC's winnowmap assembly alignments with a dipcall-style callable filter. Inside duplications those alignments can be wrong, and 10 to 25% of the duplicated sequence was not callable. The SV results in 17q21.31 rest on 5 truth SVs in duplications.
 - One aligner and one parameter set. All graphs used PGGB with wfmash at `-p 90 -s 5000 -K 19 -k 29`; the recommended human settings are pending [PENDING E5]. We did not test Minigraph-Cactus or other builders [7].
 - Timings. All timings come from a shared 4 vCPU, 15 GB cloud machine, one build at a time, with variation between replicates and container restarts. Absolute times and the memory floor will differ on other hardware; the ratios are the more transferable result.
