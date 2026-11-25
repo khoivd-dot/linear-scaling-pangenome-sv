@@ -122,7 +122,7 @@ PGGB was not deterministic between runs of the pinned image (Section 3.1), so re
 | Tier 1: shift50, shift100, 20 random cut sets | 1 |
 | Tier 2: scaling at N = 10, 20, 40 | 2 (rep1 in Tier 2, rep2 in Tier 3 as E3) |
 | Tier 2: duplication regions against monolithic | 2 |
-| Tier 3: truth comparison and duplication-aware groups (E1, E2) | 1 (second replicate of the duplication regions [PENDING rep2]) |
+| Tier 3: truth comparison and duplication-aware groups (E1, E2) | 2 |
 | Tier 3: 10 Mb (E4) | 1 |
 | Tier 3: recommended settings (E5) | [PENDING E5] |
 
@@ -311,7 +311,7 @@ Table 13. Duplication regions against the monolithic graph (Tier 2), HG00673 and
 
 At 1.2 Mb and four haplotypes, chunking saved no memory: the 17q21.31 monolithic build peaked at about 440 MB, while every chunk sat at the 970 MB floor.
 
-**Against the truth set, the chunked graph is closer in 22q11.2 and mixed in 17q21.31.** The comparison with the monolithic graph cannot say which representation is right, so Tier 3 scored both against the assembly-based truth calls (Table 14, Figure 4). These are single-replicate numbers; the second replicate of the duplication regions is pending [PENDING rep2]. Outside duplications, every graph scored F1 0.973 to 0.981, so the differences were all inside the duplicated blocks.
+**Against the truth set, the chunked graph is closer in 22q11.2 and mixed in 17q21.31.** The comparison with the monolithic graph cannot say which representation is right, so Tier 3 scored both against the assembly-based truth calls (Table 14, Figure 4). Table 14 gives replicate 1; a full second replicate agreed within 0.015 on every F1 value and within 0.006 on most (Table 14b). Outside duplications, every graph scored F1 0.973 to 0.981, so the differences were all inside the duplicated blocks.
 
 | Region, graph | Precision | Recall | F1 | F1 in SDs | F1 elsewhere | SV F1 (n) |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -323,13 +323,25 @@ At 1.2 Mb and four haplotypes, chunking saved no memory: the 17q21.31 monolithic
 | 22q11.2, monolithic | 0.909 | 0.853 | 0.880 | 0.719 | 0.973 | 0.761 (103) |
 | 22q11.2, windows0 | 0.964 | 0.960 | 0.962 | 0.937 | 0.978 | 0.818 |
 
-Table 14. Accuracy against truth calls from HPRC winnowmap assembly alignments, HG00673 and HG00733, `-p 90 -s 5000 -K 19 -k 29`, one replicate [PENDING rep2]. n is the number of truth SVs (50 bp or more).
+Table 14. Accuracy against truth calls from HPRC winnowmap assembly alignments, HG00673 and HG00733, `-p 90 -s 5000 -K 19 -k 29`, replicate 1. n is the number of truth SVs (50 bp or more).
+
+| Region, graph | F1 all | F1 in SDs | SV F1 |
+| --- | --- | --- | --- |
+| chr21 1 Mb, monolithic / windows0 / hotspots300 | 0.981 / 0.981 / 0.981 | | 0.943 / 0.943 / 0.943 |
+| 17q21.31, monolithic | 0.749 | 0.637 | 0.900 |
+| 17q21.31, windows0 | 0.802 | 0.717 | 0.720 |
+| 17q21.31, sdgroup | 0.750 | 0.636 | 0.706 |
+| 22q11.2, monolithic | 0.880 | 0.713 | 0.755 |
+| 22q11.2, windows0 | 0.962 | 0.936 | 0.814 |
+| 22q11.2, sdgroup | 0.889 | 0.760 | 0.774 |
+
+Table 14b. Replicate 2 of the truth comparison: every graph rebuilt from the same inputs. The two monolithic 22q11.2 builds differ by 183 nodes and 167 bp of node sequence, yet their recall inside SDs is 0.660 and 0.651.
 
 In 22q11.2, inside the LCR22s, the monolithic graph missed a third of the truth calls (recall 0.660) and the chunked graph 7% (0.933), and the chunked graph also had higher precision there (0.941 against 0.790). Across the whole region, SV recall rose from 0.68 to 0.89 and SV precision fell from 0.86 to 0.75. In 17q21.31 both graphs had low precision in the duplicated flanks (0.50 and 0.63) at the same recall (0.85). Chunking raised small-variant precision there but added SV false positives: 7 against 2, where the truth set holds only 5 SVs in duplications. SV F1 for the region fell from 0.90 to 0.72. With 9 truth SVs in the whole region, the 17q21.31 SV result rests on very few calls.
 
 So under the settings used throughout (`-p 90`), where chunked and monolithic graphs disagreed, the chunked graph was at least as close to the assembly-based truth calls overall, and in 22q11.2 much closer. Whether the 22q11.2 advantage remains under PGGB's recommended human settings (`-p 98 -s 10000 -k 47`) is the question E5 tests: [PENDING E5]. If stricter identity alone stops the monolithic build from merging paralogs, the advantage of chunking in 22q11.2 would be a property of the `-p 90` setting rather than of chunking as such.
 
-**Mechanism: the monolithic graph collapses paralogs.** Haplotype paths in the monolithic graphs revisited nodes they had already used for 10.5% of their length in 17q21.31 and 9.0% in 22q11.2, against 4.4% and 2.4% in the chunked graphs (Table 15). On chr21 neither graph had any revisits. A revisit means the graph merged two copies of a sequence from the same haplotype. With `-p 90`, wfmash maps segments between paralogous copies that are 90% or more identical, seqwish merges them, and a haplotype's variants in one copy are then expressed against a merged node rather than its own GRCh38 locus, which matches the loss of recall in the 22q11.2 monolithic graph. Chunks that separate the copies cannot merge them. The revisit shares are also single-replicate numbers, and whether they fall at `-p 98` is part of E5 [PENDING E5].
+**Mechanism: the monolithic graph collapses paralogs.** Haplotype paths in the monolithic graphs revisited nodes they had already used for 10.5% of their length in 17q21.31 and 9.0% in 22q11.2, against 4.4% and 2.4% in the chunked graphs (Table 15). On chr21 neither graph had any revisits. A revisit means the graph merged two copies of a sequence from the same haplotype. With `-p 90`, wfmash maps segments between paralogous copies that are 90% or more identical, seqwish merges them, and a haplotype's variants in one copy are then expressed against a merged node rather than its own GRCh38 locus, which matches the loss of recall in the 22q11.2 monolithic graph. Chunks that separate the copies cannot merge them. The revisit shares were the same to three decimals in the second replicate, and whether they fall at `-p 98` is part of E5 [PENDING E5].
 
 | Region | Monolithic | windows0 | sdgroup |
 | --- | --- | --- | --- |
@@ -337,7 +349,7 @@ So under the settings used throughout (`-p 90`), where chunked and monolithic gr
 | 17q21.31 | 0.105 | 0.044 | 0.138 |
 | 22q11.2 | 0.090 | 0.024 | 0.115 |
 
-Table 15. Share of haplotype path length that revisits a node already used by the same path, one replicate.
+Table 15. Share of path length (all paths, GRCh38 included) that revisits a node already used by the same path. Replicates 1 and 2 agree to three decimals.
 
 ### 3.6 Duplication-aware grouping does not help
 
@@ -354,7 +366,7 @@ Tier 2 had proposed keeping paralogous copies in one chunk. Tier 3 tested this b
 | Longest build (s) | 94 | 118 | 159 | 398 |
 | Monolithic CPU / wall (s) | 320 / 120 | | 1,130 / 383 | |
 
-Table 16. Duplication-aware groups (Tier 3, E2), one replicate [PENDING rep2]. These builds are separate from the Tier 2 builds in Table 13, so node-sequence differences vary slightly between the two tables.
+Table 16. Duplication-aware groups (Tier 3, E2), replicate 1. In replicate 2 the grouped 22q11.2 job again took longer than the whole monolithic build (307 s against 291 s wall), and truth F1 was 0.889 (22q11.2) and 0.750 (17q21.31). These builds are separate from the Tier 2 builds in Table 13, so node-sequence differences vary slightly between the two tables.
 
 ### Figures
 
@@ -364,7 +376,7 @@ Table 16. Duplication-aware groups (Tier 3, E2), one replicate [PENDING rep2]. T
 
 **Figure 3: Cost of monolithic and chunked builds.** (a) CPU time against N haplotypes (10, 20, 40, plus the Tier 1 point at 4) for monolithic, windows0, hotspots300 and hotspots50. (b) Wall time: monolithic against longest chunk. (c) Peak memory: monolithic against largest chunk, with the 970 MB floor visible. Fields: `tier2.json`, fields `scaling_rep1.N{10,20,40}/rep1.mono.{cpu,wall,rss}` and `.{windows0,hotspots300,hotspots50}.{cpu_sum,max_wall,max_rss}`; Tier 1 point from `tier1_controls.json`, fields `replicates.rep*.monolithic.{cpu_s,wall_s,peak_rss_mb}`. Second replicate points: `tier3.json`, fields `runs.scaling/N{10,20,40}/rep2.{monolithic,windows0,hotspots300,hotspots50}.{cpu_s,max_wall_s,peak_rss_mb}` (monolithic uses `wall_s`). (d) Region length: CPU ratio, longest build and peak memory for the 10 Mb chunkings. Fields: `tier3.json`, fields `runs.r21x/rep1.{monolithic,windows0,windows1m,windows2500k}.{cpu_s,max_wall_s,peak_rss_mb}` (monolithic uses `wall_s`). Note that the JSON key `windows0` in `r21x` is the 25 x 400 kb chunking.
 
-**Figure 4: Segmental duplications against the truth set.** (a) Truth F1 inside SDs and elsewhere for monolithic, windows0 and sdgroup graphs in 17q21.31 and 22q11.2, with chr21 as a control. Fields: `tier3.json`, fields `runs.{r17,r22,r21}/rep1.{monolithic,windows0,sdgroup}.truth.all.sd.f1`, `.truth.all.other.f1`; precision and recall from the same nodes for a supplementary panel. (b) SV F1 with the number of truth SVs annotated: `.truth.sv.total.f1`, `.truth.sv.total.tp_base + .truth.sv.total.fn`. (c) Path revisit share per graph from Table 15. These values are not in `tier3.json`; they come from the `path_revisits.py` output behind TIER3.md and need to be exported before plotting. Mark all panels as one replicate [PENDING rep2] and add E5 panels when available [PENDING E5].
+**Figure 4: Segmental duplications against the truth set.** (a) Truth F1 inside SDs and elsewhere for monolithic, windows0 and sdgroup graphs in 17q21.31 and 22q11.2, with chr21 as a control. Fields: `tier3.json`, fields `runs.{r17,r22,r21}/rep1.{monolithic,windows0,sdgroup}.truth.all.sd.f1`, `.truth.all.other.f1`; precision and recall from the same nodes for a supplementary panel. (b) SV F1 with the number of truth SVs annotated: `.truth.sv.total.f1`, `.truth.sv.total.tp_base + .truth.sv.total.fn`. (c) Path revisit share per graph from Table 15. These values are not in `tier3.json`; they come from the `path_revisits.py` output behind TIER3.md and need to be exported before plotting. Plot replicate 1 with replicate 2 as a second point (`runs.{r17,r22,r21}/rep2`, same fields), and add E5 panels when available [PENDING E5].
 
 ## 4. Discussion
 
@@ -379,7 +391,7 @@ The segmental duplication result changes how chunk boundaries should be viewed. 
 ### Limitations
 
 - Few samples. The truth comparison and duplication regions used two samples (four haplotypes). Scaling reached 40 haplotypes on one 1 Mb region of chr21. Hotspot placement was tested on chr21 and in the two duplication regions only.
-- Replicates. Scaling at N = 10, 20 and 40 has two replicates; the truth comparison, revisit shares and grouping in the duplication regions have one replicate [PENDING rep2]; random and shifted controls and the 10 Mb runs ran once each.
+- Replicates. Scaling at N = 10, 20 and 40 has two replicates; the truth comparison, revisit shares and grouping in the duplication regions have two; random and shifted controls and the 10 Mb runs ran once each.
 - A weak truth set where it matters. The truth calls come from HPRC's winnowmap assembly alignments with a dipcall-style callable filter. Inside duplications those alignments can be wrong, and 10 to 25% of the duplicated sequence was not callable. The SV results in 17q21.31 rest on 5 truth SVs in duplications.
 - One aligner and one parameter set. All graphs used PGGB with wfmash at `-p 90 -s 5000 -K 19 -k 29`; the recommended human settings are pending [PENDING E5]. We did not test Minigraph-Cactus or other builders [7].
 - Timings. All timings come from a shared 4 vCPU, 15 GB cloud machine, one build at a time, with variation between replicates and container restarts. Absolute times and the memory floor will differ on other hardware; the ratios are the more transferable result.

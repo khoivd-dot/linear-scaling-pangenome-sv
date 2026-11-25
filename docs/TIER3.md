@@ -41,8 +41,8 @@ how cost and accuracy behave at a larger scale.
 - **impg lace and our stitch give identical graphs** on all 4 regions (same
   nodes, sequence and truth scores).
 
-PENDING: second replicate of the duplication regions and the recommended-settings
-control (E5). The scaling replicate (E3) is in.
+PENDING: the recommended-settings control (E5). Both replicates of E1, E2 and
+the scaling series (E3) are in, and they agree.
 
 ## Truth set
 
@@ -82,7 +82,7 @@ benchmark, not which graph is right base by base.
 ## E1: chunked against monolithic, scored against the truth
 
 PGGB settings as in Tier 2 (`-p 90 -s 5000 -K 19 -k 29`, numeric seqwish
-`-B`), 4 haplotypes plus GRCh38, one replicate. Chunks are zero-overlap
+`-B`), 4 haplotypes plus GRCh38. Rep1 numbers; rep2 is below. Chunks are zero-overlap
 windows (`windows0`: 3 x 333 kb on chr21, 3 x 400 kb in 17q21.31,
 7 x 414 kb in 22q11.2).
 
@@ -154,6 +154,34 @@ monolithic graph in both regions). In 22q11.2 the group of LCR22A, B and D
 takes as long as the whole monolithic build. On this evidence the duplication-
 aware cut rule proposed at the end of Tier 2 should not be adopted.
 
+## Second replicate of E1 and E2
+
+Every E1 and E2 graph was rebuilt from the same inputs and scored the same
+way. Truth F1, rep1 / rep2:
+
+| Region, graph | F1 all | F1 in SDs | SV F1 | Path revisits |
+| --- | --- | --- | --- | --- |
+| chr21 1 Mb, monolithic | 0.981 / 0.981 | | 0.943 / 0.943 | 0.000 / 0.000 |
+| chr21 1 Mb, windows0 | 0.981 / 0.981 | | 0.943 / 0.943 | 0.000 / 0.000 |
+| chr21 1 Mb, hotspots300 | 0.981 / 0.981 | | 0.943 / 0.943 | |
+| 17q21.31, monolithic | 0.743 / 0.749 | 0.627 / 0.637 | 0.900 / 0.900 | 0.105 / 0.105 |
+| 17q21.31, windows0 | 0.804 / 0.802 | 0.720 / 0.717 | 0.720 / 0.720 | 0.044 / 0.044 |
+| 17q21.31, sdgroup | 0.750 / 0.750 | 0.637 / 0.636 | 0.706 / 0.706 | 0.138 / 0.138 |
+| 22q11.2, monolithic | 0.880 / 0.880 | 0.719 / 0.713 | 0.761 / 0.755 | 0.090 / 0.090 |
+| 22q11.2, windows0 | 0.962 / 0.962 | 0.937 / 0.936 | 0.818 / 0.814 | 0.024 / 0.024 |
+| 22q11.2, sdgroup | 0.889 / 0.889 | 0.760 / 0.760 | 0.789 / 0.774 | 0.115 / 0.115 |
+
+All differences between the replicates are 0.015 or less, and most are under
+0.006, against gaps of 0.05 to 0.22 between graphs in the duplication regions.
+The two monolithic builds of 22q11.2 differ by 183 nodes and 167 bp, but their
+inside-SD recall is the same (0.660 and 0.651), as is the revisit share. So the
+E1 and E2 conclusions do not rest on one lucky build. Rep2 ran faster on the
+same machine (22q11.2 monolithic 291 s against 383 s wall), and the grouped
+22q11.2 job again took longer than the whole monolithic build (307 s against
+291 s). Per-path revisit counts are in
+[`tier3_path_revisits_rep1.tsv`](tier3_path_revisits_rep1.tsv) and
+[`tier3_path_revisits_rep2.tsv`](tier3_path_revisits_rep2.tsv).
+
 ## E4: 10 Mb of chr21
 
 chr21:20,000,000-30,000,000, the same 4 haplotypes plus GRCh38, one replicate.
@@ -211,7 +239,7 @@ one in both replicates (2/2 or 9/9 seams, 11/11, 21/21 and 41/41 paths).
   (hotspots50) up to 46 of 99 false positives at N = 40 are within 10 kb of a
   cut. SVs of 50 bp or more missed against monolithic rose with N in rep2
   as in rep1: none for windows0 at N = 10 and 20, 4 of the monolithic
-  graph's SVs at N = 40 (rep1: 0), and 1 to 7 for the hotspot layouts.
+  graph's SVs at N = 40 (rep1: 0), and 0 to 7 for the hotspot layouts.
 - **Compute repeats closely.** At N = 40 the monolithic build took 525 s wall,
   1,745 s CPU and 2.2 GB (rep1: 536 s, 1,775 s, 2.3 GB). Three windows0 chunks
   used 1,779 s CPU (1.02 times), the longest finished in 211 s (40% of
@@ -235,8 +263,8 @@ one in both replicates (2/2 or 9/9 seams, 11/11, 21/21 and 41/41 paths).
 
 ## Limits
 
-- Two samples (four haplotypes) for the truth comparison; one replicate so far
-  in the duplication regions.
+- Two samples (four haplotypes) for the truth comparison; two replicates in
+  the duplication regions, one for the 10 Mb runs.
 - The truth set covers 75 to 99% of each region and is weakest inside
   duplications.
 - SV counts in 17q21.31 duplications are small (5).
