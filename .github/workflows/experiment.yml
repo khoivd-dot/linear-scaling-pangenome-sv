@@ -27,6 +27,9 @@ on:
       rep:
         description: "Replicate label (tier4)"
         default: "1"
+      from_run:
+        description: "Tier 4 only: re-summarize the res-* artifacts of this earlier run ID instead of building"
+        default: ""
 
 jobs:
   run:
@@ -95,6 +98,7 @@ jobs:
 
   t4-prep:
     needs: t4-plan
+    if: inputs.from_run == ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
@@ -117,6 +121,7 @@ jobs:
 
   t4-truth:
     needs: t4-plan
+    if: inputs.from_run == ''
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env: { W: /home/runner/work4, PY: /home/runner/venv/bin/python }
@@ -226,14 +231,20 @@ jobs:
 
   t4-summary:
     needs: [t4-plan, t4-graph]
-    if: always() && needs.t4-plan.result == 'success'
+    if: ${{ !cancelled() && needs.t4-plan.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
-        with: { pattern: "res-*", path: res, merge-multiple: true }
+        with:
+          pattern: "res-*"
+          path: res
+          merge-multiple: true
+          run-id: ${{ inputs.from_run || github.run_id }}
+          github-token: ${{ github.token }}
       - name: Summary
         run: |
           OUT=tier4_${{ needs.t4-plan.outputs.set }}_n${{ needs.t4-plan.outputs.n }}_${{ inputs.pggb }}_rep${{ inputs.rep }}.json
@@ -243,10 +254,13 @@ jobs:
       - name: Commit the run summary to the branch (docs/tier4_runs/)
         if: startsWith(github.ref, 'refs/heads/claude/')
         run: |
-          mkdir -p docs/tier4_runs && cp $OUT docs/tier4_runs/
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/tier4_runs/$OUT
-          git commit -m "Tier 4 run summary: $OUT (run ${{ github.run_id }})"
-          for i in 1 2 3 4 5; do git pull --rebase -q origin ${GITHUB_REF#refs/heads/} && git push -q origin HEAD:${GITHUB_REF#refs/heads/} && break; sleep $((i * 10)); done
+          BR=${GITHUB_REF#refs/heads/}
+          for i in 1 2 3 4 5; do   # take the branch head each time, so a file another run committed never conflicts
+            git fetch -q origin $BR && git reset -q --hard FETCH_HEAD && mkdir -p docs/tier4_runs && cp $OUT docs/tier4_runs/
+            git add docs/tier4_runs/$OUT
+            git diff --cached --quiet || git commit -q -m "Tier 4 run summary: $OUT (run ${{ inputs.from_run || github.run_id }})"
+            git push -q origin HEAD:$BR && break; sleep $((i * 10))
+          done
       - uses: actions/upload-artifact@v4
         with: { name: "tier4-${{ needs.t4-plan.outputs.set }}-n${{ needs.t4-plan.outputs.n }}-${{ inputs.pggb }}-rep${{ inputs.rep }}", path: "tier4_*.json", retention-days: 90 }
