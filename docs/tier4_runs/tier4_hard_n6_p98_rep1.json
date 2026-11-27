@@ -1,0 +1,141 @@
+{
+ "set": "hard",
+ "n_haplotypes": 6,
+ "pggb": "p98",
+ "rep": "1",
+ "graphs": {
+  "r17.mono": {
+   "chunks": 1,
+   "missing": [
+    "chunk_0001"
+   ],
+   "cost": {
+    "cpu_s": 0,
+    "sum_wall_s": 0,
+    "max_wall_s": null,
+    "max_peak_rss_mb": null
+   },
+   "chunk": {},
+   "stitch_s": null,
+   "boundaries_pass": null,
+   "boundaries": null,
+   "haplotypes_identical_to_monolithic": null,
+   "haplotypes": null,
+   "stats": {},
+   "path_revisit_share": null,
+   "truth_a100k": null,
+   "truth_a10k": null
+  },
+  "r17.windows0": {
+   "chunks": 3,
+   "missing": [
+    "chunk_0001"
+   ],
+   "cost": {
+    "cpu_s": 304.6,
+    "sum_wall_s": 179.4,
+    "max_wall_s": 104.1,
+    "max_peak_rss_mb": 969.2
+   },
+   "chunk": {
+    "chunk_0002": {
+     "bp": 400000,
+     "paths": 7,
+     "wall_s": 104.1,
+     "cpu_s": 179.6,
+     "peak_rss_mb": 969.2,
+     "vcpus": 4
+    },
+    "chunk_0003": {
+     "bp": 400000,
+     "paths": 7,
+     "wall_s": 75.3,
+     "cpu_s": 125.0,
+     "peak_rss_mb": 968.7,
+     "vcpus": 4
+    }
+   },
+   "stitch_s": null,
+   "boundaries_pass": null,
+   "boundaries": null,
+   "haplotypes_identical_to_monolithic": null,
+   "haplotypes": null,
+   "stats": {},
+   "path_revisit_share": null,
+   "truth_a100k": null,
+   "truth_a10k": null
+  },
+  "r22.mono": {
+   "chunks": 1,
+   "missing": [
+    "chunk_0001"
+   ],
+   "cost": {
+    "cpu_s": 0,
+    "sum_wall_s": 0,
+    "max_wall_s": null,
+    "max_peak_rss_mb": null
+   },
+   "chunk": {},
+   "stitch_s": null,
+   "boundaries_pass": null,
+   "boundaries": null,
+   "haplotypes_identical_to_monolithic": null,
+   "haplotypes": null,
+   "stats": {},
+   "path_revisit_share": null,
+   "truth_a100k": null,
+   "truth_a10k": null
+  },
+  "r22.windows0": {
+   "chunks": 7,
+   "missing": [
+    "chunk_0001",
+    "chunk_0004",
+    "chunk_0005",
+    "chunk_0007"
+   ],
+   "cost": {
+    "cpu_s": 402.0,
+    "sum_wall_s": 237.3,
+    "max_wall_s": 91.7,
+    "max_peak_rss_mb": 969.0
+   },
+   "chunk": {
+    "chunk_0002": {
+     "bp": 414286,
+     "paths": 7,
+     "wall_s": 91.7,
+     "cpu_s": 162.3,
+     "peak_rss_mb": 968.8,
+     "vcpus": 4
+    },
+    "chunk_0003": {
+     "bp": 414286,
+     "paths": 7,
+     "wall_s": 72.7,
+     "cpu_s": 117.2,
+     "peak_rss_mb": 968.2,
+     "vcpus": 4
+    },
+    "chunk_0006": {
+     "bp": 414286,
+     "paths": 7,
+     "wall_s": 72.9,
+     "cpu_s": 122.5,
+     "peak_rss_mb": 969.0,
+     "vcpus": 4
+    }
+   },
+   "stitch_s": null,
+   "boundaries_pass": null,
+   "boundaries": null,
+   "haplotypes_identical_to_monolithic": null,
+   "haplotypes": null,
+   "stats": {},
+   "path_revisit_share": null,
+   "truth_a100k": null,
+   "truth_a10k": null
+  }
+ }
+}
