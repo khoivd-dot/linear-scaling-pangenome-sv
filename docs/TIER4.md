@@ -28,14 +28,22 @@ chunk.
   HG002 scores 0.980 against GIAB in all three graphs.
 - **The monolithic arm does not fit on a standard runner past 6 haplotypes.**
   At 6 haplotypes it took 49 minutes and 12.1 GB. At 20 the kernel killed it
-  (exit 137, out of memory) after 63 minutes on the 16 GB runner. The 29
-  hotspot chunks needed at most 8.2 minutes and 1.5 GB each at 20 haplotypes.
-- **Cost per Mb per haplotype stays flat.** Chunked builds took 56 CPU-seconds
-  per Mb per haplotype at 6 haplotypes and 48 at 20 (53 for the monolithic
-  build at 6). Total CPU grew 2.9 times for 3 times as many paths. At 6
-  haplotypes the chunked graphs used 1.05 times (hotspots) and 1.08 times
-  (fixed windows) the CPU of the monolithic build. 40-haplotype results:
-  see [E6](#e6-chromosome-scale).
+  (exit 137, out of memory) after 63 minutes on the 16 GB runner. At 40 the
+  runner stopped responding after 5 hours inside PGGB and GitHub kept no log.
+  The 29 hotspot chunks needed at most 8.2 minutes and 1.5 GB each at 20
+  haplotypes, and 25 minutes and 3.0 GB at 40.
+- **Cost per Mb per haplotype is near 50 CPU-seconds up to 20 haplotypes and
+  rises after.** Chunked builds took 56 CPU-seconds per Mb per haplotype at 6
+  haplotypes, 48 at 20 and 73 at 40 (53 for the monolithic build at 6). Total
+  CPU grew 2.9 times from 6 to 20 haplotypes and 3.0 times from 20 to 40, as
+  expected once PGGB's all-to-all alignment, which grows with the square of
+  the number of sequences, takes over. At 6 haplotypes the chunked graphs used
+  1.05 times (hotspots) and 1.08 times (fixed windows) the CPU of the
+  monolithic build.
+- **The same three samples score a little lower as haplotypes are added.**
+  F1 for all variants is 0.976, 0.972 and 0.969 at 6, 20 and 40 haplotypes,
+  and SV F1 0.855, 0.844 and 0.813. Without a monolithic graph at 20 or 40 we
+  cannot say how much of this is chunking.
 - **With HG002 added, the hard regions repeat Tier 3.** At PGGB `-p 90` the
   chunked 22q11.2 graph scores 0.964 to 0.965 against 0.898 monolithic, and the chunked
   17q21.31 graph 0.802 against 0.69 to 0.70. At `-p 98 -s 10000 -k 47` the
@@ -67,10 +75,10 @@ N (the GRCh38 path is not counted).
 | 6 | windows1m | 31 | 2.96 | 1.08 | 3.0 min | 0.97 GB | 57.4 |
 | 20 | monolithic | 1 | killed | | > 63 min | > 16 GB | |
 | 20 | hotspots1m | 29 | 8.31 | | 8.2 min | 1.50 GB | 48.3 |
-| 40 | monolithic | 1 | <!-- N40 --> | | | | |
-| 40 | hotspots1m | 29 | <!-- N40 --> | | | | |
+| 40 | monolithic | 1 | runner lost | | > 5 h | | |
+| 40 | hotspots1m | 29 | 25.11 | | 24.6 min | 2.96 GB | 72.9 |
 
-Stitching the chunks took 6 s at 6 haplotypes and 16 s at 20. The chunk
+Stitching the chunks took 6 s at 6 haplotypes, 16 s at 20 and 34 s at 40. The chunk
 builds ran up to 20 at a time, the free plan's limit on concurrent jobs.
 
 Accuracy against the truth, `vcfbub -a 100000` (`-a 10000` gives the same
@@ -82,14 +90,15 @@ figures to within 0.002):
 | 6 | hotspots1m | 0.976 | 0.855 | 0.980 / 0.980 | 28 / 28 | 7 / 7 |
 | 6 | windows1m | 0.976 | 0.875 | 0.980 / 0.980 | 30 / 30 | 7 / 7 |
 | 20 | hotspots1m | 0.972 | 0.844 | 0.975 / 0.976 | 28 / 28 | no monolithic graph |
-| 40 | hotspots1m | <!-- N40 --> | | | | |
+| 40 | hotspots1m | 0.969 | 0.813 | 0.972 / 0.973 | 28 / 28 | no monolithic graph |
 
 The SV differences at 6 haplotypes are 25 to 40 calls out of 1,700 and run
 in no consistent direction (fixed windows score highest, hotspots lowest).
-The same three samples score about 0.004 lower in the 20-haplotype graph than
-in the 6-haplotype one. With no monolithic graph at 20 haplotypes we cannot
-tell whether this comes from chunking or from calling variants in a graph
-with more haplotypes. Tier 3's scaling series (10 to 40 haplotypes on 1 Mb)
+The same three samples score 0.004 lower in the 20-haplotype graph than in
+the 6-haplotype one, and 0.007 lower at 40; SV F1 falls from 0.855 to 0.813.
+With no monolithic graph at 20 or 40 haplotypes we cannot tell whether this
+comes from chunking or from calling variants in a graph with more
+haplotypes. Tier 3's scaling series (10 to 40 haplotypes on 1 Mb)
 found that agreement between chunked and monolithic graphs falls slowly with
 N, from about 0.996 to 0.986-0.993, so some of the drop may be chunking.
 
