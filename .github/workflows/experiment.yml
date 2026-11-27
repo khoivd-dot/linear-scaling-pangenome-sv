@@ -158,7 +158,7 @@ jobs:
         run: |
           mkdir -p $W/in
           $PY pipeline/benchmark/tier4/chunk_fasta.py $W/coords ${{ matrix.unit.strategy }} ${{ matrix.unit.chunk }} $W/ref/$CHROM.fa \
-            $W/in/${{ matrix.unit.id }}.fa --chrom $CHROM --prefixes $(python3 pipeline/benchmark/tier4/sets.py prefixes ${{ needs.t4-plan.outputs.set }} ${{ needs.t4-plan.outputs.n }})
+            $W/in/${{ matrix.unit.id }}.fa --region ${{ matrix.unit.region }} --chrom $CHROM --prefixes $(python3 pipeline/benchmark/tier4/sets.py prefixes ${{ needs.t4-plan.outputs.set }} ${{ needs.t4-plan.outputs.n }})
           grep -c '>' $W/in/*.fa; du -h $W/in/*.fa
       - name: PGGB
         run: |

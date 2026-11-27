@@ -5,8 +5,9 @@ slice fetched remotely (bgzipped HPRC assembly over HTTPS, via pysam/htslib).
 Record names and orientation match pipeline/prepare/project_chunks.py, so the stitch sees the
 same input either way: `GRCh38#0#chr21:start-end`, then `SAMPLE#HAP#CONTIG[_rc]:start-end`.
 
-    chunk_fasta.py COORDS_DIR STRATEGY CHUNK_ID REF_CHROM.fa OUT.fa --chrom chr21 --prefixes HG00673#1 ...
-COORDS_DIR holds the project_coords.py tables (any *.tsv); REF_CHROM.fa is a whole-chromosome
+    chunk_fasta.py COORDS_DIR STRATEGY CHUNK_ID REF_CHROM.fa OUT.fa --region arm --chrom chr21 --prefixes HG00673#1 ...
+COORDS_DIR holds the project_coords.py tables (coords.<REGION>.<SAMPLE>.tsv from prep_sample.sh; strategy and
+chunk names repeat across regions, so only the --region tables are read); REF_CHROM.fa is a whole-chromosome
 FASTA (indexed with pysam if needed) whose single record is the chromosome.
 """
 import argparse
@@ -46,11 +47,12 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("coords_dir"); ap.add_argument("strategy"); ap.add_argument("chunk_id")
     ap.add_argument("ref_fa"); ap.add_argument("out")
+    ap.add_argument("--region", required=True)
     ap.add_argument("--chrom", required=True)
     ap.add_argument("--prefixes", nargs="+", required=True, help="SAMPLE#HAP in output order")
     a = ap.parse_args(argv)
     rows = {}
-    for path in sorted(glob.glob(os.path.join(a.coords_dir, "**", "*.tsv"), recursive=True)):
+    for path in sorted(glob.glob(os.path.join(a.coords_dir, "**", f"coords.{a.region}.*.tsv"), recursive=True)):
         for r in csv.DictReader(open(path), delimiter="\t"):
             if r["strategy"] == a.strategy and r["chunk_id"] == a.chunk_id:
                 rows[r["prefix"]] = r
@@ -59,6 +61,8 @@ def main(argv=None):
         raise SystemExit(f"FATAL: no coordinates for {missing}")
     ref = pysam.FastaFile(a.ref_fa)
     rs, re_ = int(rows[a.prefixes[0]]["ref_start"]), int(rows[a.prefixes[0]]["ref_end"])
+    if any((int(rows[p]["ref_start"]), int(rows[p]["ref_end"])) != (rs, re_) for p in a.prefixes):
+        raise SystemExit("FATAL: haplotypes disagree on the chunk's reference interval")
     with open(a.out, "w") as out:
         write_record(out, f"GRCh38#0#{a.chrom}:{rs}-{re_}", ref.fetch(ref.references[0], rs, re_).upper())
         for p in a.prefixes:
