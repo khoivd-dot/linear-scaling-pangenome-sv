@@ -228,6 +228,8 @@ jobs:
     needs: [t4-plan, t4-graph]
     if: always() && needs.t4-plan.result == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
@@ -237,6 +239,14 @@ jobs:
           OUT=tier4_${{ needs.t4-plan.outputs.set }}_n${{ needs.t4-plan.outputs.n }}_${{ inputs.pggb }}_rep${{ inputs.rep }}.json
           python3 pipeline/benchmark/tier4/summarize.py res $OUT --set ${{ needs.t4-plan.outputs.set }} \
             --n ${{ needs.t4-plan.outputs.n }} --pggb ${{ inputs.pggb }} --rep ${{ inputs.rep }}
-          echo "TIER4_JSON_BEGIN"; gzip -9c $OUT | base64 -w 0; echo; echo "TIER4_JSON_END"
+          echo "OUT=$OUT" >> $GITHUB_ENV
+      - name: Commit the run summary to the branch (docs/tier4_runs/)
+        if: startsWith(github.ref, 'refs/heads/claude/')
+        run: |
+          mkdir -p docs/tier4_runs && cp $OUT docs/tier4_runs/
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/tier4_runs/$OUT
+          git commit -m "Tier 4 run summary: $OUT (run ${{ github.run_id }})"
+          for i in 1 2 3 4 5; do git pull --rebase -q origin ${GITHUB_REF#refs/heads/} && git push -q origin HEAD:${GITHUB_REF#refs/heads/} && break; sleep $((i * 10)); done
       - uses: actions/upload-artifact@v4
         with: { name: "tier4-${{ needs.t4-plan.outputs.set }}-n${{ needs.t4-plan.outputs.n }}-${{ inputs.pggb }}-rep${{ inputs.rep }}", path: "tier4_*.json", retention-days: 90 }
