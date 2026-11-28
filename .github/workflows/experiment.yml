@@ -11,7 +11,7 @@ on:
       stage:
         description: "What to run"
         type: choice
-        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard]
+        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard, tier4-cuts]
         default: tier4-hard
       reps:
         description: "Replicates (tier3-e1e2 only)"
@@ -91,7 +91,11 @@ jobs:
       - uses: actions/checkout@v4
       - id: p
         run: |
-          if [ "${{ inputs.stage }}" = tier4-arm ]; then SET=arm; N=${{ inputs.n }}; CH=chr21; else SET=hard; N=6; CH="chr17 chr22"; fi
+          case "${{ inputs.stage }}" in
+            tier4-arm) SET=arm; N=${{ inputs.n }}; CH=chr21;;
+            tier4-cuts) SET=cuts; N=6; CH="chr17 chr22";;   # Tier 5: cuts between paralogs
+            *) SET=hard; N=6; CH="chr17 chr22";;
+          esac
           echo "set=$SET" >> $GITHUB_OUTPUT; echo "n=$N" >> $GITHUB_OUTPUT; echo "chroms=$CH" >> $GITHUB_OUTPUT
           echo "plan=$(python3 pipeline/benchmark/tier4/sets.py plan $SET $N)" >> $GITHUB_OUTPUT
           python3 pipeline/benchmark/tier4/sets.py plan $SET $N | python3 -m json.tool | head -40

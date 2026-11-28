@@ -1,6 +1,6 @@
 # Building pangenome graphs in chunks: zero-overlap seams are clean, cut placement does not matter, and chunk boundaries can limit paralog collapse
 
-Authors: BCM SV Hackathon 2026 team (Quang, Michael, Khoi, Ali, Alexander, Lex) — full names and order to confirm
+Authors: Nhat Quang Tran, Dang Khoi Vu, Michael Olufemi, Alexander W. Lehr, Ali Rizvi
 
 Draft of 2026-11-25. Every number below is copied from the result documents and JSON files in `docs/` of the code repository. All planned experiments are complete; figures are specified in captions but not yet rendered.
 

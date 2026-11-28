@@ -33,6 +33,16 @@ def test_hard_plan_regions():
     assert {g["id"] for g in p["graphs"]} == {"r17.mono", "r17.windows0", "r22.mono", "r22.windows0"}
 
 
+def test_cuts_plan_adds_paralog_and_control_chunkings():
+    p = _plan("cuts", 6)
+    assert {g["id"] for g in p["graphs"]} == {f"{r}.{s}" for r in ("r17", "r22") for s in ("mono", "windows0", "sdsplit", "ctrl")}
+    n = {(u["region"], u["strategy"]): 0 for u in p["units"]}
+    for u in p["units"]:
+        n[(u["region"], u["strategy"])] += 1
+    for r in ("r17", "r22"):   # the control adds as many cuts as sdsplit does
+        assert n[(r, "sdsplit")] == n[(r, "ctrl")] > n[(r, "windows0")]
+
+
 def test_manifests_tile_regions_without_overlap():
     from sets import REGIONS
     for name in os.listdir(os.path.join(T4, "manifests")):

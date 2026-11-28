@@ -1,0 +1,5 @@
+chunk_id	chrom	reference_start	reference_end	core_start	core_end	overlap_left	overlap_right	pairwise_overlap_bp	status
+chunk_0001	chr17	45400000	45800000	45400000	45800000	0	0	0	pending
+chunk_0002	chr17	45800000	46200000	45800000	46200000	0	0	0	pending
+chunk_0003	chr17	46200000	46436202	46200000	46436202	0	0	0	pending
+chunk_0004	chr17	46436202	46600000	46436202	46600000	0	0	0	pending
