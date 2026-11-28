@@ -6,7 +6,7 @@ arm  chr21:15,000,000-46,000,000 (31 Mb of the long arm)
   windows1m   fixed 1 Mb windows
   hotspots1m  haploblocks.org block boundaries, merged left to right until a chunk reaches 1 Mb;
               a last piece under 500 kb joins the chunk before it
-mid  chr21:20,000,000-25,000,000 (Tier 5 E8): mono, windows1m
+mid  chr21:20,000,000-25,000,000 (Tier 6 E8): mono, windows1m
 r17  chr17:45,400,000-46,600,000 and r22 chr22:18,600,000-21,500,000 (Tier 3 hard regions)
   mono, windows0 (the Tier 3 zero-overlap windows: 3 x 400 kb and 7 x 414,286 bp)
 

@@ -11,13 +11,13 @@ on:
       stage:
         description: "What to run"
         type: choice
-        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard, tier5-mid, verify-image]
+        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard, tier6-mid, verify-image]
         default: tier4-hard
       reps:
         description: "Replicates (tier3-e1e2 only)"
         default: "1"
       n:
-        description: "Haplotypes (tier4-arm and tier5-mid: 6, 20 or 40; tier4-hard is always 6)"
+        description: "Haplotypes (tier4-arm and tier6-mid: 6, 20 or 40; tier4-hard is always 6)"
         default: "6"
       pggb:
         description: "PGGB settings (tier4): p90 = config/pipeline.yaml, p98 = -p 98 -s 10000 -k 47"
@@ -91,7 +91,7 @@ jobs:
           docker run --rm $IMG bash -lc 'for t in pggb wfmash seqwish smoothxg odgi gfaffix vg; do echo "== $t"; ($t --version 2>&1; $t version 2>&1) | head -4; done; grep -m3 -i version $(which pggb)'
 
   t4-plan:
-    if: startsWith(inputs.stage, 'tier4') || startsWith(inputs.stage, 'tier5')
+    if: startsWith(inputs.stage, 'tier4') || startsWith(inputs.stage, 'tier6')
     runs-on: ubuntu-latest
     outputs:
       plan: ${{ steps.p.outputs.plan }}
@@ -104,7 +104,7 @@ jobs:
         run: |
           case "${{ inputs.stage }}" in
             tier4-arm) SET=arm; N=${{ inputs.n }}; CH=chr21;;
-            tier5-mid) SET=mid; N=${{ inputs.n }}; CH=chr21;;
+            tier6-mid) SET=mid; N=${{ inputs.n }}; CH=chr21;;
             *) SET=hard; N=6; CH="chr17 chr22";;
           esac
           echo "set=$SET" >> $GITHUB_OUTPUT; echo "n=$N" >> $GITHUB_OUTPUT; echo "chroms=$CH" >> $GITHUB_OUTPUT

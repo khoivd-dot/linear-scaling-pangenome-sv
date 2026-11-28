@@ -1,6 +1,6 @@
-# Tier 5: what Tier 4 left open
+# Tier 6: haplotype count against chunking, and cost per PGGB stage
 
-Tier 4 ([TIER4.md](TIER4.md)) left three questions:
+Tier 4 ([TIER4.md](TIER4.md)) left three questions. (Tier 5, on paralog-aware cuts, is a separate experiment.)
 
 1. **Is the accuracy loss at more haplotypes caused by chunking?** On the chr21
    arm, the same three samples scored F1 0.976, 0.972 and 0.969 at 6, 20 and
@@ -42,7 +42,7 @@ What would settle the questions:
 - The stage table should show which stage's share of CPU grows from 6 to 40
   haplotypes.
 
-Run with stage `tier5-mid` and `n` = 6, 20 and 40 in `experiment.yml`. The
+Run with stage `tier6-mid` and `n` = 6, 20 and 40 in `experiment.yml`. The
 summaries land in `docs/tier4_runs/tier4_mid_n*_p90_rep1.json`.
 
 ## Proposed next
