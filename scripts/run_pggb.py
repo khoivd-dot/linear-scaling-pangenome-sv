@@ -16,6 +16,7 @@ NOTE: -w is NOT a valid PGGB v0.6.0 option.
 
 Usage:
     python3 scripts/run_pggb.py input.fa output_dir [threads]
+    (threads: argument, else $PGGB_THREADS, else config pggb.threads)
 """
 import json, os, subprocess, sys, time, yaml
 from pathlib import Path
@@ -58,6 +59,7 @@ def main():
     os.makedirs(outdir, exist_ok=True)
 
     cfg = load_config()
+    cfg["threads"] = int(os.environ.get("PGGB_THREADS") or cfg["threads"])
     if len(sys.argv) >= 4:
         cfg["threads"] = int(sys.argv[3])
 

@@ -1,0 +1,266 @@
+name: Experiment
+# Long benchmark runs on GitHub runners instead of a cloud session (docs/TIER3.md, docs/TIER4.md).
+# Start it from the Actions tab (Run workflow) on any pushed branch; results come back as an artifact.
+# tier3-* stages run on one runner. tier4-* stages fan out: one job per sample to align and project,
+# one job per chunk (and one for the monolithic graph) to build, one job per graph to stitch and score.
+# The Tier 3 scripts were written for the cloud machine's paths, so the job recreates them:
+# /home/user/linear-scaling-pangenome-sv -> this checkout, /home/user/work -> scratch on the runner.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "What to run"
+        type: choice
+        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard]
+        default: tier4-hard
+      reps:
+        description: "Replicates (tier3-e1e2 only)"
+        default: "1"
+      n:
+        description: "Haplotypes (tier4-arm: 6, 20 or 40; tier4-hard is always 6)"
+        default: "6"
+      pggb:
+        description: "PGGB settings (tier4): p90 = config/pipeline.yaml, p98 = -p 98 -s 10000 -k 47"
+        type: choice
+        options: [p90, p98]
+        default: p90
+      rep:
+        description: "Replicate label (tier4)"
+        default: "1"
+      from_run:
+        description: "Tier 4 only: re-summarize the res-* artifacts of this earlier run ID instead of building"
+        default: ""
+
+jobs:
+  run:
+    if: startsWith(inputs.stage, 'tier3')
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      HTTPS_PROXY: ""
+      PY: /home/user/work/venv/bin/python
+    steps:
+      - uses: actions/checkout@v4
+      - name: Paths, Python tools and the pinned PGGB image
+        run: |
+          sudo mkdir -p /home/user/work /root/.ccr && sudo chown -R $USER /home/user
+          ln -s "$GITHUB_WORKSPACE" /home/user/linear-scaling-pangenome-sv
+          sudo cp /etc/ssl/certs/ca-certificates.crt /root/.ccr/ca-bundle.crt && sudo chmod 755 /root /root/.ccr
+          python3 -m venv /home/user/work/venv
+          /home/user/work/venv/bin/pip install -q mappy pysam "truvari==5.5.0" pyyaml
+          mkdir -p /home/user/work/bin && cp pipeline/benchmark/tier3/shims/* /home/user/work/bin/
+          sed -i '1s|.*|#!/home/user/work/venv/bin/python|' /home/user/work/bin/*
+          pip install -q pyyaml
+          docker pull ghcr.io/pangenome/pggb@sha256:44f3563c5c3e2032c293fe309eed178b754021b07963ca4857e4ae5efda86474
+      - name: Run
+        run: |
+          export PATH=/home/user/work/bin:$PATH
+          T=pipeline/benchmark/tier3
+          case "${{ inputs.stage }}" in
+            tier3-e1e2|tier3-e4)
+              bash $T/setup_inputs.sh
+              bash $T/run_truth.sh
+              if [ "${{ inputs.stage }}" = tier3-e1e2 ]; then REPS=${{ inputs.reps }} bash $T/run_e1e2.sh; else bash $T/run_e4.sh; fi ;;
+            tier3-scaling)
+              bash $T/setup_inputs.sh   # region FASTA and chr21 manifests
+              bash $T/scaling_select.sh
+              bash $T/scaling_rep2.sh fetch && bash $T/scaling_rep2.sh project && bash $T/scaling_rep2.sh build ;;
+          esac
+      - name: Collect results
+        if: always()
+        run: |
+          cd /home/user/work
+          find . \( -name '*.json' -o -name '*.log' -o -name '*.tsv' \) -not -path './venv/*' -not -path '*/_work/*' -size -5M \
+            | tar czf $GITHUB_WORKSPACE/results.tgz -T -
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experiment-${{ inputs.stage }}
+          path: results.tgz
+
+  # ---------------------------------------------------------------- Tier 4 (docs/TIER4.md)
+  t4-plan:
+    if: startsWith(inputs.stage, 'tier4')
+    runs-on: ubuntu-latest
+    outputs:
+      plan: ${{ steps.p.outputs.plan }}
+      set: ${{ steps.p.outputs.set }}
+      n: ${{ steps.p.outputs.n }}
+      chroms: ${{ steps.p.outputs.chroms }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: p
+        run: |
+          if [ "${{ inputs.stage }}" = tier4-arm ]; then SET=arm; N=${{ inputs.n }}; CH=chr21; else SET=hard; N=6; CH="chr17 chr22"; fi
+          echo "set=$SET" >> $GITHUB_OUTPUT; echo "n=$N" >> $GITHUB_OUTPUT; echo "chroms=$CH" >> $GITHUB_OUTPUT
+          echo "plan=$(python3 pipeline/benchmark/tier4/sets.py plan $SET $N)" >> $GITHUB_OUTPUT
+          python3 pipeline/benchmark/tier4/sets.py plan $SET $N | python3 -m json.tool | head -40
+
+  t4-prep:
+    needs: t4-plan
+    if: inputs.from_run == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: ${{ fromJSON(needs.t4-plan.outputs.plan).samples }}
+    env: { W: /home/runner/work4, PY: /home/runner/venv/bin/python }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools (pysam, minimap2 2.28)
+        run: |
+          python3 -m venv /home/runner/venv && /home/runner/venv/bin/pip install -q pysam
+          mkdir -p /home/runner/bin && curl -sSL https://github.com/lh3/minimap2/releases/download/v2.28/minimap2-2.28_x64-linux.tar.bz2 \
+            | tar -jx -C /home/runner/bin --strip-components 1 minimap2-2.28_x64-linux/minimap2
+          echo /home/runner/bin >> $GITHUB_PATH
+      - run: bash pipeline/benchmark/tier4/fetch_ref.sh ${{ needs.t4-plan.outputs.chroms }}
+      - run: bash pipeline/benchmark/tier4/prep_sample.sh ${{ needs.t4-plan.outputs.set }} ${{ needs.t4-plan.outputs.n }} ${{ matrix.sample }} $W/prep
+      - uses: actions/upload-artifact@v4
+        with: { name: "prep-${{ matrix.sample }}", path: /home/runner/work4/prep/coords.*.tsv, retention-days: 5 }
+
+  t4-truth:
+    needs: t4-plan
+    if: inputs.from_run == ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env: { W: /home/runner/work4, PY: /home/runner/venv/bin/python }
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 -m venv /home/runner/venv && /home/runner/venv/bin/pip install -q pysam
+      - run: bash pipeline/benchmark/tier4/fetch_ref.sh ${{ needs.t4-plan.outputs.chroms }}
+      - run: bash pipeline/benchmark/tier4/truth.sh ${{ join(fromJSON(needs.t4-plan.outputs.plan).regions, ' ') }}
+      - run: cd $W && wc -l truth/*.vcf && cp ref/segdups.bed truth/
+      - uses: actions/upload-artifact@v4
+        with: { name: truth, path: "/home/runner/work4/truth*/", retention-days: 5 }
+
+  t4-build:
+    needs: [t4-plan, t4-prep]
+    name: build ${{ matrix.unit.id }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix:
+        unit: ${{ fromJSON(needs.t4-plan.outputs.plan).units }}
+    env: { W: /home/runner/work4, PY: /home/runner/venv/bin/python }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Free disk for monolithic builds
+        if: matrix.unit.strategy == 'mono'
+        run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL; df -h /
+      - run: |
+          python3 -m venv /home/runner/venv && /home/runner/venv/bin/pip install -q pysam pyyaml
+          docker pull -q ghcr.io/pangenome/pggb@sha256:44f3563c5c3e2032c293fe309eed178b754021b07963ca4857e4ae5efda86474
+      - run: |
+          read -r CHROM _ < <(python3 pipeline/benchmark/tier4/sets.py region ${{ matrix.unit.region }})
+          bash pipeline/benchmark/tier4/fetch_ref.sh $CHROM
+          echo "CHROM=$CHROM" >> $GITHUB_ENV
+      - uses: actions/download-artifact@v4
+        with: { pattern: "prep-*", path: /home/runner/work4/coords, merge-multiple: true }
+      - name: Chunk input
+        run: |
+          mkdir -p $W/in
+          $PY pipeline/benchmark/tier4/chunk_fasta.py $W/coords ${{ matrix.unit.strategy }} ${{ matrix.unit.chunk }} $W/ref/$CHROM.fa \
+            $W/in/${{ matrix.unit.id }}.fa --region ${{ matrix.unit.region }} --chrom $CHROM --prefixes $(python3 pipeline/benchmark/tier4/sets.py prefixes ${{ needs.t4-plan.outputs.set }} ${{ needs.t4-plan.outputs.n }})
+          grep -c '>' $W/in/*.fa; du -h $W/in/*.fa
+      - name: PGGB
+        run: |
+          if [ "${{ inputs.pggb }}" = p98 ]; then
+            sed -e 's/minimum_identity: 90/minimum_identity: 98/' -e 's/segment_length: 5000/segment_length: 10000/' \
+                -e 's/match_length: 29/match_length: 47/' config/pipeline.yaml > $W/pipeline_p98.yaml
+            grep -q "minimum_identity: 98" $W/pipeline_p98.yaml && grep -q "match_length: 47" $W/pipeline_p98.yaml
+            export PIPELINE_CONFIG=$W/pipeline_p98.yaml
+          fi
+          $PY scripts/run_pggb.py $W/in/${{ matrix.unit.id }}.fa $W/builds/${{ matrix.unit.id }} 4
+          cd $W/builds/${{ matrix.unit.id }} && find . -maxdepth 1 -type f ! -name final.gfa ! -name run_metadata.json ! -name time_v.txt ! -name pggb_run.log -delete
+          cat run_metadata.json
+      - uses: actions/upload-artifact@v4
+        with: { name: "build-${{ matrix.unit.id }}", path: "/home/runner/work4/builds/", retention-days: 5 }
+
+  t4-graph:
+    needs: [t4-plan, t4-build, t4-truth]
+    if: always() && needs.t4-truth.result == 'success'
+    name: graph ${{ matrix.graph.id }} ${{ matrix.bub }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    strategy:
+      fail-fast: false
+      matrix:
+        graph: ${{ fromJSON(needs.t4-plan.outputs.plan).graphs }}
+        bub: [a100k, a10k]
+    env: { W: /home/runner/work4, PY: /home/runner/venv/bin/python }
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 -m venv /home/runner/venv && /home/runner/venv/bin/pip install -q pysam pyyaml "truvari==5.5.0"
+          docker pull -q ghcr.io/pangenome/pggb@sha256:44f3563c5c3e2032c293fe309eed178b754021b07963ca4857e4ae5efda86474
+      - run: |
+          read -r CHROM START _ < <(python3 pipeline/benchmark/tier4/sets.py region ${{ matrix.graph.region }})
+          bash pipeline/benchmark/tier4/fetch_ref.sh $CHROM
+          echo "CHROM=$CHROM" >> $GITHUB_ENV; echo "START=$START" >> $GITHUB_ENV
+      - uses: actions/download-artifact@v4
+        with: { pattern: "build-${{ matrix.graph.id }}.*", path: /home/runner/work4/builds, merge-multiple: true }
+      - uses: actions/download-artifact@v4
+        if: matrix.graph.strategy != 'mono' && matrix.bub == 'a100k'
+        continue-on-error: true
+        with: { pattern: "build-${{ matrix.graph.region }}.mono.*", path: /home/runner/work4/mono, merge-multiple: true }
+      - uses: actions/download-artifact@v4
+        with: { name: truth, path: /home/runner/work4 }
+      - name: Stitch and describe
+        run: |
+          mkdir -p $W/res/${{ matrix.graph.id }}
+          MONO=$(ls $W/mono/*/final.gfa 2>/dev/null | head -1 || true)
+          $PY pipeline/benchmark/tier4/graph_eval.py $W/builds ${{ matrix.graph.region }} ${{ matrix.graph.strategy }} $W/g ${MONO:+--mono-gfa $MONO}
+          [ "${{ matrix.bub }}" = a100k ] && cp $W/g/graph.json $W/res/${{ matrix.graph.id }}/ || true
+      - name: Score against truth
+        run: |
+          [ -s $W/g/graph.gfa ] || { echo "no graph"; exit 0; }
+          case ${{ matrix.bub }} in a100k) BUB="-l 0 -a 100000";; a10k) BUB="-l 0 -a 10000";; esac
+          HAPS="HG00673#1 HG00673#2 HG00733#1 HG00733#2"
+          [ "${{ matrix.graph.region }}" = r17 ] || HAPS="$HAPS HG002#1 HG002#2"   # GIAB v5.0q has no benchmark regions in 17q21.31
+          $PY pipeline/benchmark/tier3/score_vs_truth.py $W/g/graph.gfa $W/res/${{ matrix.graph.id }}/truth_${{ matrix.bub }}.json \
+            --chrom $CHROM --region-start $START --ref $W/ref/$CHROM.fa --truth $W/truth/${{ matrix.graph.region }} \
+            --truth-sv $W/truthsv/${{ matrix.graph.region }} --haps $HAPS --segdups $W/truth/segdups.bed \
+            --truvari /home/runner/venv/bin/truvari --bub "$BUB"
+          rm -rf $W/res/${{ matrix.graph.id }}/truth_${{ matrix.bub }}_work
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: "res-${{ matrix.graph.id }}-${{ matrix.bub }}", path: /home/runner/work4/res/, retention-days: 30 }
+
+  t4-summary:
+    needs: [t4-plan, t4-graph]
+    if: ${{ !cancelled() && needs.t4-plan.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: "res-*"
+          path: res
+          merge-multiple: true
+          run-id: ${{ inputs.from_run || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Summary
+        run: |
+          OUT=tier4_${{ needs.t4-plan.outputs.set }}_n${{ needs.t4-plan.outputs.n }}_${{ inputs.pggb }}_rep${{ inputs.rep }}.json
+          python3 pipeline/benchmark/tier4/summarize.py res $OUT --set ${{ needs.t4-plan.outputs.set }} \
+            --n ${{ needs.t4-plan.outputs.n }} --pggb ${{ inputs.pggb }} --rep ${{ inputs.rep }}
+          echo "OUT=$OUT" >> $GITHUB_ENV
+      - name: Commit the run summary to the branch (docs/tier4_runs/)
+        if: startsWith(github.ref, 'refs/heads/claude/')
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BR=${GITHUB_REF#refs/heads/}
+          for i in 1 2 3 4 5; do   # take the branch head each time, so a file another run committed never conflicts
+            git fetch -q origin $BR && git reset -q --hard FETCH_HEAD && mkdir -p docs/tier4_runs && cp $OUT docs/tier4_runs/
+            git add docs/tier4_runs/$OUT
+            git diff --cached --quiet || git commit -q -m "Tier 4 run summary: $OUT (run ${{ inputs.from_run || github.run_id }})"
+            git push -q origin HEAD:$BR && break; sleep $((i * 10))
+          done
+      - uses: actions/upload-artifact@v4
+        with: { name: "tier4-${{ needs.t4-plan.outputs.set }}-n${{ needs.t4-plan.outputs.n }}-${{ inputs.pggb }}-rep${{ inputs.rep }}", path: "tier4_*.json", retention-days: 90 }

@@ -1,0 +1,13 @@
+region	sample	hap	assembly	contig	strand	url
+r17	HG00673	1	HG00673_pat_hprc_r2_v1.0.1	JAHBBZ020000013.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00673/assemblies/release2/HG00673_pat_hprc_r2_v1.0.1.fa.gz
+r22	HG00673	1	HG00673_pat_hprc_r2_v1.0.1	JAHBBZ020000010.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00673/assemblies/release2/HG00673_pat_hprc_r2_v1.0.1.fa.gz
+r17	HG00673	2	HG00673_mat_hprc_r2_v1.0.1	JAHBBY020000007.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00673/assemblies/release2/HG00673_mat_hprc_r2_v1.0.1.fa.gz
+r22	HG00673	2	HG00673_mat_hprc_r2_v1.0.1	JAHBBY020000013.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC/HG00673/assemblies/release2/HG00673_mat_hprc_r2_v1.0.1.fa.gz
+r17	HG00733	1	HG00733_pat_hprc_r2_v1.0.1	CM099636.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG00733/assemblies/release2/HG00733_pat_hprc_r2_v1.0.1.fa.gz
+r22	HG00733	1	HG00733_pat_hprc_r2_v1.0.1	JAHEPQ020000017.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG00733/assemblies/release2/HG00733_pat_hprc_r2_v1.0.1.fa.gz
+r17	HG00733	2	HG00733_mat_hprc_r2_v1.0.1	CM099649.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG00733/assemblies/release2/HG00733_mat_hprc_r2_v1.0.1.fa.gz
+r22	HG00733	2	HG00733_mat_hprc_r2_v1.0.1	JAHEPP020000051.1	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG00733/assemblies/release2/HG00733_mat_hprc_r2_v1.0.1.fa.gz
+r17	HG002	1	hg002v1.1.pat	chr17	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG002/assemblies/Q100/pansn/hg002v1.1.pat.PanSN.fa.gz
+r22	HG002	1	hg002v1.1.pat	chr22	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG002/assemblies/Q100/pansn/hg002v1.1.pat.PanSN.fa.gz
+r17	HG002	2	hg002v1.1.mat_MT	chr17	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG002/assemblies/Q100/pansn/hg002v1.1.mat_MT.PanSN.fa.gz
+r22	HG002	2	hg002v1.1.mat_MT	chr22	+	https://s3-us-west-2.amazonaws.com/human-pangenomics/working/HPRC_PLUS/HG002/assemblies/Q100/pansn/hg002v1.1.mat_MT.PanSN.fa.gz

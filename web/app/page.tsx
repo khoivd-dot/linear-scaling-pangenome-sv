@@ -18,6 +18,10 @@ interface LatestData {
   equivalence?: { verdict?: string };
   boundaries?: { boundary?: string; status?: string; haplotypes_joined?: number }[];
 }
+interface Finding {
+  step: string; question: string; finding: string;
+  status: "done" | "running"; writeup: { label: string; url: string };
+}
 interface OverviewData {
   chunks?: { chunk_id: string; reference_start: number; reference_end: number;
     core_start: number; core_end: number; overlap_left: number; overlap_right: number }[];
@@ -38,6 +42,7 @@ export default function Home() {
   const [manifest, setManifest] = useState<ManifestData | null>(null);
   const [latest, setLatest] = useState<LatestData | null>(null);
   const [overview, setOverview] = useState<OverviewData | null>(null);
+  const [findings, setFindings] = useState<Finding[] | null>(null);
   const [graphMode, setGraphMode] = useState("baseline");
   const [selSample, setSelSample] = useState("GRCh38");
   const [selHap, setSelHap] = useState("0");
@@ -52,7 +57,8 @@ export default function Home() {
       fetch(`${basePath}/data/manifest.json`).then(r => (r.ok ? r.json() : Promise.reject())),
       fetch(`${basePath}/data/latest.json`).then(r => (r.ok ? r.json() : Promise.reject())),
       fetch(`${basePath}/data/overview.json`).then(r => (r.ok ? r.json() : Promise.reject())),
-    ]).then(([m, l, o]) => {
+      fetch(`${basePath}/data/findings.json`).then(r => (r.ok ? r.json() : Promise.reject())),
+    ]).then(([m, l, o, f]) => {
       if (m.status === "fulfilled") {
         setManifest(m.value);
         const s = m.value.samples;
@@ -60,6 +66,7 @@ export default function Home() {
       }
       if (l.status === "fulfilled") setLatest(l.value);
       if (o.status === "fulfilled") setOverview(o.value);
+      if (f.status === "fulfilled") setFindings(f.value.findings);
       setLoading(false);
     });
   }, []);
@@ -73,7 +80,7 @@ export default function Home() {
 
   useEffect(() => {
     const h = window.location.hash.slice(1);
-    if (["explore", "dashboard", "chunks", "compare", "performance"].includes(h)) setTab(h);
+    if (["explore", "dashboard", "findings", "chunks", "compare", "performance"].includes(h)) setTab(h);
   }, []);
 
   useEffect(() => { loadGraph(); }, [loadGraph]);
@@ -90,12 +97,8 @@ export default function Home() {
   const hapLabels: Record<string, string> = samples.find(s => s.sample === selSample)?.hap_labels || {};
   const graphNames = manifest?.graphs && Object.keys(manifest.graphs).length
     ? Object.keys(manifest.graphs) : ["baseline", "stitched"];
-  // Support v2 schema (nested run.data_mode) and v1 (top-level data_mode)
-  const dataMode = manifest?.run?.data_mode || manifest?.data_mode || latest?.data_mode || "synthetic";
-  const sciStatus = manifest?.run?.scientific_status || "";
   const bm = latest?.metrics?.baseline || {};
   const mm = latest?.metrics?.merged || {};
-  const eqVerdict = latest?.equivalence?.verdict || null;
 
   if (loading) return <div className="container loading">Loading…</div>;
 
@@ -133,13 +136,9 @@ export default function Home() {
           <div className="graph-mode-explainer">
             {graphMode === "stitched" ? (
               <>
-                <div className="gm-row"><span className="gm-chip" /> Cut the region into overlapping chunks.</div>
-                <div className="gm-row"><span className="gm-chip" /> Build mini-graphs in parallel on DNAnexus.</div>
-                <div className="gm-row"><span className="gm-chip" /> Stitch chunks together at overlaps.</div>
-                <div className="callout-warn gm-warn">
-                  Chunks produced 0 edges (PGGB needs <code>-K 19</code>). Showing baseline for demo.
-                  Real stitched graph pending chunk rebuild.
-                </div>
+                <div className="gm-row"><span className="gm-chip" /> Cut the region into three chunks with no overlap.</div>
+                <div className="gm-row"><span className="gm-chip" /> Build a graph for each chunk in parallel.</div>
+                <div className="gm-row"><span className="gm-chip" /> Join each person&apos;s path across the cuts.</div>
               </>
             ) : (
               <>
@@ -201,24 +200,23 @@ export default function Home() {
     </div>
   );
 
-  const metricRows: [string, string][] = [["Nodes", "nodes"], ["Edges", "edges"], ["Paths", "paths"], ["Components", "components"]];
+  const metricRows: [string, string][] = [["Nodes", "nodes"], ["Edges", "edges"], ["Paths", "paths"], ["Node sequence (bp)", "sequence_bp"]];
 
   const renderDashboard = () => (
     <section className="section">
       <h2>Results</h2>
       <p className="section-lede">
-        <span className={"badge " + (latest?.equivalence?.verdict === "EQUIVALENT" ? "badge-ok" : "badge-warn")}>
-          EQUIVALENCE: {latest?.equivalence?.verdict || "NOT_RUN"}
-        </span>
+        The whole region built in one go (baseline) against the three chunks stitched back together, same five haplotypes.
+        PGGB is not deterministic, so two baseline builds also differ slightly; see Findings.
       </p>
       <div className="card results-table">
         <table className="data-table">
           <thead>
-            <tr><th scope="col">Graph metric</th><th scope="col" className="num">Baseline</th><th scope="col" className="num">Merged</th></tr>
+            <tr><th scope="col">Graph metric</th><th scope="col" className="num">Baseline</th><th scope="col" className="num">Stitched</th></tr>
           </thead>
           <tbody>
             {metricRows.filter(([, k]) => bm[k] != null || mm[k] != null).map(([label, k]) => (
-              <tr key={k}><th scope="row">{label}</th><td className="num">{bm[k] ?? "–"}</td><td className="num">{mm[k] ?? "–"}</td></tr>
+              <tr key={k}><th scope="row">{label}</th><td className="num">{bm[k]?.toLocaleString("en-US") ?? "–"}</td><td className="num">{mm[k]?.toLocaleString("en-US") ?? "–"}</td></tr>
             ))}
           </tbody>
         </table>
@@ -232,20 +230,25 @@ export default function Home() {
     const hi = Math.max(...chunks.map(c => c.reference_end));
     const pct = (bp: number) => `${((bp - lo) / Math.max(hi - lo, 1)) * 100}%`;
     const span = (a: number, b: number) => ({ left: pct(a), width: `${((b - a) / Math.max(hi - lo, 1)) * 100}%` });
+    const hasOverlap = chunks.some(c => c.overlap_left > 0 || c.overlap_right > 0);
+    const bp = (n: number) => n.toLocaleString("en-US");
     return (
       <section className="section">
         <h2>Chunks</h2>
-        <p className="section-lede">
-          <span className={"badge " + (latest?.stitch?.status === "PASS" ? "badge-ok" : "badge-warn")}>
-            STITCH: {latest?.stitch?.status || "NOT_RUN"}
-          </span>
-        </p>
+        {chunks.length > 1 && (
+          <p className="section-lede">
+            {chunks.length} chunks{hasOverlap ? " with overlaps" : ", no overlap"}. Cuts at chr21:{chunks.slice(1).map(c => bp(c.reference_start)).join(" and ")}.
+            Each chunk was built on its own, then each path was joined across the cuts.
+          </p>
+        )}
         {chunks.length > 0 && (
           <div className="card">
-            <div className="chunk-legend" aria-hidden="true">
-              <span><span className="swatch swatch-span" /> chunk with overlaps</span>
-              <span><span className="swatch swatch-core" /> core</span>
-            </div>
+            {hasOverlap && (
+              <div className="chunk-legend" aria-hidden="true">
+                <span><span className="swatch swatch-span" /> chunk with overlaps</span>
+                <span><span className="swatch swatch-core" /> core</span>
+              </div>
+            )}
             {chunks.map(c => (
               <div key={c.chunk_id} className="chunk-row">
                 <strong className="chunk-id">{c.chunk_id}</strong>
@@ -255,7 +258,7 @@ export default function Home() {
                     <div className="chunk-core" style={span(c.core_start, c.core_end)} />
                   </div>
                   <span className="chunk-coords">
-                    chr21:{c.reference_start}–{c.reference_end} (core {c.core_start}–{c.core_end})
+                    chr21:{bp(c.reference_start)}–{bp(c.reference_end)}{hasOverlap && ` (core ${bp(c.core_start)}–${bp(c.core_end)})`}
                   </span>
                 </div>
               </div>
@@ -351,6 +354,32 @@ export default function Home() {
     );
   };
 
+  const renderFindings = () => (
+    <section className="section">
+      <h2>Findings</h2>
+      <p className="section-lede">What each experiment asked and what it found. Each row links to its write-up on GitHub.</p>
+      {findings?.length ? (
+        <div className="card findings-card">
+          <table className="data-table findings-table">
+            <thead>
+              <tr><th scope="col">Step</th><th scope="col">Question</th><th scope="col">Finding</th><th scope="col">Status</th></tr>
+            </thead>
+            <tbody>
+              {findings.map(f => (
+                <tr key={f.question}>
+                  <th scope="row">{f.step}</th>
+                  <td className="f-question">{f.question}</td>
+                  <td>{f.finding} <a className="f-link" href={f.writeup.url}>{f.writeup.label}</a></td>
+                  <td><span className={"status status-" + f.status}>{f.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <p className="inspector-empty">Findings could not be loaded.</p>}
+    </section>
+  );
+
   const renderPerformance = () => (
     <section className="section">
       <h2>Performance scaling</h2>
@@ -382,7 +411,7 @@ export default function Home() {
           </div>
         </div>
         <div className="callout-warn" style={{ marginTop: 12 }}>
-          <strong>NOTE:</strong> These are theoretical estimates based on PGGB&apos;s O(n²×L) all-pairs alignment with n=5 haplotypes. Real DNAnexus timings will replace estimates after chunk rebuild.
+          <strong>NOTE:</strong> These are theoretical estimates based on PGGB&apos;s O(n²×L) all-pairs alignment with n=5 haplotypes. Measured CPU, wall time and memory at 40 haplotypes are in Findings (Tier 2).
         </div>
       </div>
     </section>
@@ -390,7 +419,8 @@ export default function Home() {
 
   const tabs = [
     { key: "explore", label: "Explore", hint: "look at the graph" },
-    { key: "dashboard", label: "Results", hint: "numbers & verdict" },
+    { key: "dashboard", label: "Results", hint: "graph numbers" },
+    { key: "findings", label: "Findings", hint: "what the experiments found" },
     { key: "chunks", label: "Chunks", hint: "the parallel pieces" },
     { key: "compare", label: "Compare", hint: "two people side by side" },
     { key: "performance", label: "Speed", hint: "scaling & time complexity" },
@@ -461,8 +491,8 @@ export default function Home() {
           </dl>
           <p className="hero-note">
             <strong>Benchmark region:</strong> GRCh38 <span className="mono">chr21:20,000,000–21,000,000</span> (1 Mb, 5 haplotypes).
-            The graph viewer shows a representative high-diversity subsection for clarity;
-            timing, equivalence, and variant metrics are calculated across the full 1 Mb.
+            The graph viewer draws at most 4,000 nodes around the selected path so it stays fast;
+            the Results table counts the full graphs.
           </p>
         </div>
       </header>
@@ -496,9 +526,9 @@ export default function Home() {
           <ol className="steps-grid">
             <PlainStep title="Pick a region" desc="We focus on a tiny slice of chromosome 21: just 1 million DNA letters. Small enough to test fast, big enough to matter." />
             <PlainStep title="Line everyone up" desc="We find where each person's DNA matches our reference, like aligning everyone to the same starting line." />
-            <PlainStep title="Split and build" desc="We cut the region into overlapping 400 Kb chunks and build a little graph for each. All chunks run at the same time." />
-            <PlainStep title="Stitch together" desc="Our algorithm finds the overlapping edges between chunks and joins them, like connecting puzzle pieces." />
-            <PlainStep title="Check our work" desc={`We compare against building the whole thing in one go (no splitting). Result: ${eqVerdict==="EQUIVALENT"?"they match!":"testing now"}`} />
+            <PlainStep title="Split and build" desc="We cut the region into three chunks of about 333 Kb, with no overlap, and build a little graph for each. All chunks run at the same time." />
+            <PlainStep title="Stitch together" desc="Every person's path crosses each cut, so we join the chunk graphs where the paths cross, like connecting puzzle pieces." />
+            <PlainStep title="Check our work" desc="We compare against building the whole thing in one go (no splitting). The Findings tab lists what each round of tests showed." />
           </ol>
         </div>
       </section>
@@ -520,6 +550,7 @@ export default function Home() {
         <div id="tab-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
           {tab === "explore" && renderExplore()}
           {tab === "dashboard" && renderDashboard()}
+          {tab === "findings" && renderFindings()}
           {tab === "chunks" && renderChunks()}
           {tab === "compare" && renderCompare()}
           {tab === "performance" && renderPerformance()}

@@ -312,3 +312,22 @@ button { touch-action: manipulation; }
 }
 
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* findings: one row per experiment, read from data/findings.json */
+.findings-card { padding: 4px 20px; }
+.findings-table thead th:first-child { width: 72px; }
+.findings-table .f-question { color: var(--ink-2); max-width: 32ch; }
+.findings-table td { line-height: 1.55; }
+.f-link { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+.status { display: inline-block; padding: 2px 8px; border: 1px solid var(--rule-strong); border-radius: var(--r-control); font-family: var(--mono); font-size: 13px; }
+.status-running { border-style: dashed; color: var(--muted); }
+@media (max-width: 768px) {
+  .findings-card { padding: 4px 16px; }
+  .findings-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .findings-table tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; padding: 14px 0; border-bottom: 1px solid var(--rule-soft); }
+  .findings-table tr:last-child { border-bottom: 0; }
+  .findings-table th, .findings-table td { display: block; padding: 0; border: 0; }
+  .findings-table .f-question { grid-column: 1 / -1; max-width: none; font-weight: 600; color: var(--ink); }
+  .findings-table td:nth-child(3) { grid-column: 1 / -1; }
+  .findings-table td:last-child { grid-row: 1; grid-column: 2; }
+}
