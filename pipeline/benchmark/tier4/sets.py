@@ -9,6 +9,8 @@
 SET arm   chr21:15-46 Mb, the first N haplotypes of haps_arm.tsv (N = 6, 20 or 40);
           mono + hotspots1m, plus windows1m when N <= 6
 SET hard  17q21.31 and 22q11.2 (Tier 3 regions), HG00673, HG00733, HG002 (N = 6); mono + windows0
+SET mid   chr21:20-25 Mb (Tier 5 E8), the same haplotypes as arm; mono + windows1m at every N, so the
+          monolithic graph fits on a runner and chunking can be told apart from haplotype count
 """
 import csv
 import json
@@ -17,19 +19,21 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REGIONS = {"arm": ("chr21", 15_000_000, 46_000_000), "r17": ("chr17", 45_400_000, 46_600_000),
-           "r22": ("chr22", 18_600_000, 21_500_000)}
+           "r22": ("chr22", 18_600_000, 21_500_000), "mid": ("chr21", 20_000_000, 25_000_000)}
 
 
 def haps(set_, n):
-    if set_ == "arm":
+    if set_ in ("arm", "mid"):
         rows = list(csv.DictReader(open(os.path.join(HERE, "haps_arm.tsv")), delimiter="\t"))[:n]
-        return [dict(r, region="arm") for r in rows]
+        return [dict(r, region=set_) for r in rows]
     return list(csv.DictReader(open(os.path.join(HERE, "haps_hard.tsv")), delimiter="\t"))
 
 
 def strategies(set_, n):
     if set_ == "arm":
         return [("arm", "mono"), ("arm", "hotspots1m")] + ([("arm", "windows1m")] if n <= 6 else [])
+    if set_ == "mid":
+        return [("mid", "mono"), ("mid", "windows1m")]
     return [(r, s) for r in ("r17", "r22") for s in ("mono", "windows0")]
 
 

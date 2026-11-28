@@ -6,6 +6,7 @@ arm  chr21:15,000,000-46,000,000 (31 Mb of the long arm)
   windows1m   fixed 1 Mb windows
   hotspots1m  haploblocks.org block boundaries, merged left to right until a chunk reaches 1 Mb;
               a last piece under 500 kb joins the chunk before it
+mid  chr21:20,000,000-25,000,000 (Tier 5 E8): mono, windows1m
 r17  chr17:45,400,000-46,600,000 and r22 chr22:18,600,000-21,500,000 (Tier 3 hard regions)
   mono, windows0 (the Tier 3 zero-overlap windows: 3 x 400 kb and 7 x 414,286 bp)
 
@@ -47,6 +48,8 @@ def main():
     cut([os.path.join(OUT, "arm.hotspots1m.tsv"), "--chrom", "chr21", "--start", str(s), "--end", str(e),
          "--cuts", ",".join(map(str, cuts))])
     window("arm.windows1m", "chr21", s, e, 1_000_000)
+    window("mid.windows1m", "chr21", 20_000_000, 25_000_000, 1_000_000)
+    window("mid.mono", "chr21", 20_000_000, 25_000_000, 5_000_000)
     for reg, chrom, rs, re_, size in (("arm", "chr21", s, e, None), ("r17", "chr17", 45_400_000, 46_600_000, 400_000),
                                       ("r22", "chr22", 18_600_000, 21_500_000, 414_286)):
         if size:

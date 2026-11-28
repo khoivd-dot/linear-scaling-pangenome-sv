@@ -64,6 +64,9 @@ def main(argv=None):
         res["chunk"][cid] = {"bp": int(r["reference_end"]) - int(r["reference_start"]), "paths": m.get("num_paths"),
                              "wall_s": round(m["wall_seconds"], 1), "cpu_s": m.get("cpu_seconds"),
                              "peak_rss_mb": m.get("peak_rss_mb"), "vcpus": m.get("vcpus")}
+        st = os.path.join(d, "stages.json")
+        if os.path.exists(st):
+            res["chunk"][cid]["stages"] = json.load(open(st))
         graphs.append((cid, gfa))
     c = res["chunk"].values()
     res["cost"] = {"cpu_s": round(sum(x["cpu_s"] or 0 for x in c), 1), "sum_wall_s": round(sum(x["wall_s"] for x in c), 1),

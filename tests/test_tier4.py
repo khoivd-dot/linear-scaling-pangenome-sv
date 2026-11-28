@@ -70,3 +70,25 @@ def test_project_coords_matches_project_chunks(tmp_path):
     f = projector(chained_alignment(str(paf)))
     assert [(int(r["hap_start"]), int(r["hap_end"])) for r in rows] == [(f(0), f(10)), (f(10), f(34))]
     assert rows[0]["hap_end"] == rows[1]["hap_start"] and rows[0]["qname"] == "S#1#c"
+
+
+def test_mid_plan_has_monolithic_at_every_n():
+    for n in (6, 20, 40):
+        p = _plan("mid", n)
+        assert p["regions"] == ["mid"] and len(p["samples"]) == n // 2
+        assert [u["strategy"] for u in p["units"]] == ["mono"] + ["windows1m"] * 5
+
+
+def test_pggb_stages_short_and_verbose_forms():
+    from pggb_stages import parse
+    short = ("wfmash -s 5000 -p 90 in.fa\n[wfmash::map] reference = in.fa\n"
+             "10.00s user 2.00s system 300% cpu 4.00s total 2048Kb max memory\n"
+             "odgi build -g x.gfa\n1.00s user 0.00s system 99% cpu 1.00s total 1024Kb max memory\n"
+             "odgi sort -i x.og\n2.00s user 1.00s system 99% cpu 3.00s total 4096Kb max memory\n")
+    s = parse(short)
+    assert s["wfmash"] == {"wall_s": 4.0, "cpu_s": 12.0, "peak_rss_mb": 2.0, "runs": 1}
+    assert s["odgi"]["wall_s"] == 4.0 and s["odgi"]["runs"] == 2 and s["odgi"]["peak_rss_mb"] == 4.0
+    verbose = ('\tCommand being timed: "seqwish -s in.fa -p x.paf"\n\tUser time (seconds): 5.50\n'
+               '\tSystem time (seconds): 0.50\n\tElapsed (wall clock) time (h:mm:ss or m:ss): 1:02.5\n'
+               '\tMaximum resident set size (kbytes): 10240\n')
+    assert parse(verbose)["seqwish"] == {"wall_s": 62.5, "cpu_s": 6.0, "peak_rss_mb": 10.0, "runs": 1}
