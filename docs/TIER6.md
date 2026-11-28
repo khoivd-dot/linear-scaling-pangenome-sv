@@ -15,6 +15,28 @@ Tier 4 ([TIER4.md](TIER4.md)) left three questions. (Tier 5, on paralog-aware cu
    project's stand-alone dipcall wrapper (`pipeline/linear/run_dipcall.sh`)
    has never been run against them.
 
+## Which PGGB the pinned image holds (checklist item M1)
+
+Every tier so far used `ghcr.io/pangenome/pggb@sha256:44f3563c…` and called it
+PGGB v0.6.0. The new `verify-image` stage ran each tool's version command
+inside that image (run 46159869291):
+
+| Tool | Version reported |
+|------|------------------|
+| pggb | `4225c6c` (a commit, not a release tag) |
+| wfmash | `d47b7e3` |
+| seqwish | v0.7.11-35-gaab5bee |
+| smoothxg | v0.8.2-9-g0ea0470 |
+| vg | v1.71.0 "Cera" |
+
+On ghcr.io the digest is the image tagged `202607241950514225c6` (built
+2026-07-24 from pggb commit 4225c6c), which `latest` also points to today.
+There is no `v0.6.0` tag. The results stand, since they all come from this
+one pinned image, but "PGGB v0.6.0" in the write-ups should read "PGGB at
+commit 4225c6c (ghcr.io build of 2026-07-24)". The seqwish `-B` finding in
+Tier 2 also belongs to this build; whether the v0.6.0 release behaves the
+same was not tested.
+
 <!-- RESULTS -->
 
 ## E8: chunking against haplotype count, with time per stage (running)

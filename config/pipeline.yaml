@@ -60,6 +60,10 @@ pggb:
   # Immutable image reference — NEVER use :latest for scientific benchmarks.
   # Digest pulled successfully on DNAnexus Group11_2026 (chunk PGGB 2026-08-28).
   # The previous sha256:2e89b1d1… is unpublished (docker: manifest unknown).
+  # Verified 2026-11-28 (experiment.yml stage verify-image): this digest is ghcr.io tag
+  # 202607241950514225c6 and reports `pggb 4225c6c`, wfmash d47b7e3, seqwish v0.7.11-35-gaab5bee,
+  # smoothxg v0.8.2-9-g0ea0470, vg v1.71.0. ghcr.io has no v0.6.0 tag; image_tag below is the
+  # label used since August 2026, not the release the image was built from.
   image: ghcr.io/pangenome/pggb@sha256:44f3563c5c3e2032c293fe309eed178b754021b07963ca4857e4ae5efda86474
   image_tag: v0.6.0
 
