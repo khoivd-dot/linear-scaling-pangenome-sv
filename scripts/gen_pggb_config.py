@@ -11,7 +11,7 @@ def load_config():
     cfg = yaml.safe_load(open(os.environ.get("PIPELINE_CONFIG", "config/pipeline.yaml")))
     pggb = cfg.get("pggb", {})
     params = pggb.get("params", {})
-    # NOTE: PGGB v0.6.0 does NOT have a -w option.
+    # NOTE: the pinned PGGB build (commit 4225c6c) does NOT have a -w option.
     # -K = mash k-mer (mash_kmer), -k = seqwish minimum match length (match_length)
     return {
         "image": pggb.get("image", "ghcr.io/pangenome/pggb:latest"),

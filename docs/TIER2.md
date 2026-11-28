@@ -10,7 +10,7 @@ than about 1 Mb.
 
 ## Summary
 
-- **A seqwish bug under-collapses large inputs.** PGGB v0.6.0 hands its
+- **A seqwish bug under-collapses large inputs.** The pinned PGGB build (commit 4225c6c) hands its
   default `-B 10M` to the bundled seqwish (v0.7.11-35-gaab5bee) without
   converting the suffix. seqwish reads it as 1,000,000, and its batched
   transitive closure then loses merges across batch edges. A 2.9 Mb

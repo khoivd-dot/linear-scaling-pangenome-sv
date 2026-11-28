@@ -30,7 +30,7 @@ Live site: [collaborativebioinformatics.github.io/linear-scaling-pangenome-sv](h
 
 ### Where to cut: chunking experiments (Nov 2026)
 
-These runs ask whether the place you cut a region changes the stitched graph. All are on the 4 vCPU cloud container with the pinned PGGB v0.6.0 image, real HPRC release 2 assemblies, and GRCh38 chr21:20-21 Mb unless noted. Full write-ups are in `docs/`.
+These runs ask whether the place you cut a region changes the stitched graph. All are on the 4 vCPU cloud container with the pinned PGGB image (pggb commit 4225c6c, ghcr.io build of 2026-07-24), real HPRC release 2 assemblies, and GRCh38 chr21:20-21 Mb unless noted. Full write-ups are in `docs/`.
 
 | Step | Question | Finding | Write-up |
 |------|----------|---------|----------|
@@ -42,15 +42,15 @@ These runs ask whether the place you cut a region changes the stitched graph. Al
 
 What to take from it:
 
-- **Cut without overlap.** Chunks that touch end to end stitch cleanly (`seam_position` joins touching intervals, and `project_chunks.py` projects each cut onto every haplotype so neighbours meet exactly). A few hundred kb per chunk is the useful size; at 50-270 kb each PGGB run is mostly fixed cost.
+- **Cut without overlap.** Chunks that touch end to end stitch cleanly (`seam_position` joins touching intervals, and `project_chunks.py` projects each cut onto every haplotype so neighbours meet exactly). About 1 Mb per chunk is a good size. At 50-270 kb each PGGB run is mostly fixed cost, and at 10 Mb the CPU overhead falls from 1.51x with 400 kb chunks to 1.22x with 1 Mb and 1.06x with 2.5 Mb.
 - **Where you cut matters less than we expected.** Recombination hotspots have not beaten fixed zero-overlap cuts in any comparison so far.
 - **In segmental duplications, chunk boundaries help.** With `-p 90`, monolithic PGGB routes about 9% of each 22q11.2 haplotype through nodes it has already used (collapsed paralogs); zero-overlap chunks bring that to 2.4% and score closer to the truth set. Keeping paralogous chunks together in one job (the rule Tier 2 proposed) makes it worse, so don't.
 - **Check monolithic VCFs in duplicated regions.** When a reference path loops through collapsed paralogs, `vg deconstruct` can put hundreds of kb of variants under one short top-level bubble, and PGGB's `vcfbub -l 0 -a 100000` drops them all: at `-p 98` the monolithic 22q11.2 VCF lost 86% of the truth calls. `pipeline/benchmark/tier3/path_revisits.py` shows the loops; scoring with `--bub "-l 0 -a 10000"` recovers the calls.
 - **Chunking pays off around 40 haplotypes.** At N = 40 three chunks use the same total CPU as monolithic (1,790 vs 1,775 s), the longest chunk finishes in 40% of the monolithic wall time, and peak memory stays near 970 MB per chunk against 2.3 GB monolithic.
 - **Replicate everything.** The pinned PGGB image is not deterministic: two monolithic builds of the same input differ by up to 9 nodes and 47 bp, which is the size of most effects above.
-- **seqwish bug, fixed here.** PGGB v0.6.0 passes its default `-B 10M` to seqwish unparsed, so any input sequence over about 1 Mb comes out under-collapsed (22q11.2: 12.3 Mb of node sequence instead of 4.3 Mb). `config/pipeline.yaml` now sets `transclose_batch: 100000000` and every runner passes it; set `PGGB_TRANSCLOSE_BATCH=pggb-default` to get the old behaviour. The 1 Mb chr21 results are not affected.
+- **seqwish bug, fixed here.** The pinned PGGB build (commit 4225c6c) passes its default `-B 10M` to seqwish unparsed, so any input sequence over about 1 Mb comes out under-collapsed (22q11.2: 12.3 Mb of node sequence instead of 4.3 Mb). `config/pipeline.yaml` now sets `transclose_batch: 100000000` and every runner passes it; set `PGGB_TRANSCLOSE_BATCH=pggb-default` to get the old behaviour. The 1 Mb chr21 results are not affected.
 
-The paper draft built from Tiers 1-3 is in [docs/paper/manuscript.md](docs/paper/manuscript.md).
+The paper draft covers Tiers 1-4 and is in [docs/paper/manuscript.md](docs/paper/manuscript.md), with its five figures in [docs/paper/figures/](docs/paper/figures/) (regenerate with `python scripts/make_paper_figures.py`).
 
 ## Quick start
 
@@ -78,7 +78,7 @@ To run the full pipeline on real HPRC data, see [DNAnexus](#dnanexus).
 | Results | 10,389 nodes, 14,185 edges |
 | Chunks | 3 overlapping 400 Kb chunks |
 | Compare | Compare any two people's DNA |
-| Speed | Complexity scaling chart |
+| Speed | Measured build time, monolithic vs longest chunk, at 1, 10 and 31 Mb, with a cost table |
 
 ## How it works
 
@@ -143,7 +143,7 @@ Each write-up lists the commands it was run with.
 | Baseline edges | 14,185 |
 | Baseline wall time | 327s (5.5 min) on `mem3_ssd1_v2_x16` |
 | Parallel wall time | 272s (4.5 min), 1.20× speedup |
-| PGGB | v0.6.0, pinned `sha256:44f3563c`, -K 19, -k 29 |
+| PGGB | commit 4225c6c (ghcr.io build of 2026-07-24; not the v0.6.0 release), pinned `sha256:44f3563c`, -K 19, -k 29 |
 | Chunk status | ✅ Rebuilt Nov 2026 with zero-overlap chunks projected onto every haplotype ([Tier 1](docs/TIER1_CONTROLS.md)) |
 | Stitch / Truvari | ✅ Every haplotype path identical to the monolithic build; truvari F1 ≈ 0.998 vs monolithic ([Tier 1](docs/TIER1_CONTROLS.md), [Tier 2](docs/TIER2.md)) |
 

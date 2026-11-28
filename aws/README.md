@@ -35,7 +35,7 @@ Facts checked on 2026-11-23 that matter for the pipeline:
 - The repo's 1 Mb pilot region, chr21:20,000,000-21,000,000, is covered by 20 blocks
   (`blocks/chr21_pilot_20-21Mb.txt`).
 
-## Measured here first (4 vCPU, 15 GB, pinned PGGB v0.6.0, 2026-11-23)
+## Measured here first (4 vCPU, 15 GB, pinned PGGB image, pggb commit 4225c6c, 2026-11-23)
 
 Block chr22:44,303,006-44,307,622 (4.6 kb), `-s 1000`, seeded haplotype subsets:
 
@@ -58,7 +58,7 @@ Needs the AWS CLI v2 with credentials for your account, and Docker.
 ```bash
 export AWS_REGION=us-west-2          # same region as the HPRC bucket
 bash aws/haploblocks_aws.sh deploy   # Spot Batch compute env, queue, job def, ECR repo, S3 bucket
-bash aws/haploblocks_aws.sh push     # build aws/Dockerfile (pinned PGGB v0.6.0 + awscli) and push
+bash aws/haploblocks_aws.sh push     # build aws/Dockerfile (pinned PGGB image + awscli) and push
 
 # 1. Smoke test: 12 chr22 blocks, 64 haplotypes each, identical sequences collapsed
 bash aws/haploblocks_aws.sh submit aws/blocks/chr22_small_dataset.txt 64 1
