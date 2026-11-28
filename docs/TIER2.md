@@ -21,15 +21,16 @@ than about 1 Mb.
 - **Seams stay clean up to 40 haplotypes.** Three zero-overlap chunks add 0 to
   1 bp of extra node sequence within 10 kb of a cut at N = 10, 20 and 40, and
   every haplotype path matches the monolithic graph base for base. Ten small
-  chunks add 30 to 101 bp near cuts.
-- **Hotspot placement still shows no advantage.** At every N the fixed
-  zero-overlap windows match the monolithic graph at least as well as the
-  hotspot chunks (one replicate per N; see Limits).
+  chunks add up to about 100 bp near cuts. Chunked graphs differ from
+  monolithic about as much as two monolithic builds differ from each other.
+- **Hotspot placement still shows no advantage.** Fixed zero-overlap windows
+  scored higher than hotspot chunks in four of six runs, and every gap was
+  smaller than run-to-run noise (two replicates per N).
 - **Chunking starts to pay at 40 haplotypes.** Monolithic CPU time grows faster
-  than linearly (364, 708, 1,775 s at N = 10, 20, 40) and peak memory rises from
-  about 970 MB to 2.3 GB. Three chunks use the same total CPU as monolithic at
-  N = 40, stay at about 970 MB each, and the longest chunk finishes in 40% of
-  the monolithic wall time.
+  than linearly (364, 708, 1,775 s at N = 10, 20, 40 in rep1) and peak memory
+  rises from about 970 MB to 2.3 GB. Three chunks use about the same total CPU
+  as monolithic at N = 40 (0.98 to 1.04 times), stay at about 970 MB each, and
+  the longest chunk finishes in about 40% of the monolithic wall time.
 - **In segmental duplications chunking changes the graph, not the seams.** In
   17q21.31 and 22q11.2 the seams are clean, but chunked graphs carry about
   6.5% more sequence than monolithic and truvari F1 against monolithic is 0.78
@@ -147,56 +148,80 @@ then 18 more chosen at random (seed 1) among the 229 samples whose
 chr21:19.95-21.05 Mb sits on a single minigraph-cactus chain in both
 haplotypes. Haplotype sets are nested (the first 5, 10 or 20 samples). Each
 contig was fetched remotely, aligned with minimap2 2.28, and cut with the same
-manifests as Tier 1. One replicate per N; PGGB with pggb's default `-B`
-throughout, so the runs match Tier 1.
+manifests as Tier 1. Two replicates per N, each scored against its own
+monolithic build; PGGB with pggb's default `-B` throughout, so the runs match
+Tier 1 (1 Mb inputs are not affected by the bug, section 1). Numbers are
+rep1 / rep2.
 
 Monolithic builds:
 
-| N haplotypes (+ GRCh38) | Nodes | Node sequence (bp) | Wall (s) | CPU (s) | Peak memory (MB) |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 4 (Tier 1, 3 reps) | 10,386-10,395 | 1,006,528-1,006,575 | 112-135 | 221-266 | about 970 |
-| 10 | 13,362 | 1,008,347 | 163 | 364 | 972 |
-| 20 | 18,214 | 1,011,283 | 250 | 708 | 1,197 |
-| 40 | 22,898 | 1,013,701 | 536 | 1,775 | 2,335 |
+| N haplotypes (+ GRCh38) | Nodes | Node sequence (bp) | Wall (s) | CPU (s) | Peak memory (MB) | truvari F1, rep1 vs rep2 |
+| ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| 4 (Tier 1, 3 reps) | 10,386-10,395 | 1,006,528-1,006,575 | 112-135 | 221-266 | about 970 | 0.9995-1.0 |
+| 10 | 13,362 / 13,449 | 1,008,347 / 1,008,401 | 163 / 167 | 364 / 401 | 972 / 973 | 0.9960 |
+| 20 | 18,214 / 18,196 | 1,011,283 / 1,011,251 | 250 / 330 | 708 / 940 | 1,197 / 1,203 | 0.9914 |
+| 40 | 22,898 / 22,904 | 1,013,701 / 1,013,633 | 536 / 671 | 1,775 / 2,201 | 2,335 / 2,359 | 0.9975 |
 
-Chunked builds, against the monolithic build of the same N
-(windows0 / hotspots300 / hotspots50):
+Chunked builds against the monolithic build of the same N and replicate
+(windows0, hotspots300, hotspots50):
 
-| | N = 10 | N = 20 | N = 40 |
-| --- | --- | --- | --- |
-| Extra node sequence within 10 kb of a cut (bp) | 0 / 0 / 101 | 0 / -2 / 50 | 0 / 1 / 30 |
-| Extra node sequence, total (bp) | 1 / 20 / -44 | 7 / -24 / -12 | -134 / 71 / -47 |
-| Haplotypes identical to monolithic | all | all | all |
-| truvari F1 vs monolithic | 0.9982 / 0.9977 / 0.9951 | 0.9978 / 0.9930 / 0.9929 | 0.9961 / 0.9930 / 0.9905 |
-| truvari FN within 10 kb of a cut | 0 / 0 / 3 | 7 / 6 / 21 | 0 / 0 / 32 |
-| SVs (50 bp+) missed, of 40 / 67 / 112 | 0 / 0 / 3 | 0 / 1 / 1 | 0 / 2 / 5 |
-| CPU, all chunks (s) | 456 / 469 / 663 | 798 / 780 / 1,016 | 1,790 / 1,742 / 1,771 |
-| Longest chunk, wall (s) | 93 / 96 / 79 | 123 / 123 / 104 | 215 / 210 / 163 |
-| Peak memory, largest chunk (MB) | 969 / 968 / 968 | 970 / 969 / 968 | 970 / 970 / 853 |
+| | | N = 10 | N = 20 | N = 40 |
+| --- | --- | --- | --- | --- |
+| Extra node sequence within 10 kb of a cut (bp) | windows0 | 0 / 0 | 0 / 1 | 0 / 0 |
+| | hotspots300 | 0 / 0 | -2 / 5 | 1 / 0 |
+| | hotspots50 | 101 / 100 | 50 / 60 | 30 / -36 |
+| Extra node sequence, total (bp) | windows0 | 1 / -57 | 7 / 36 | -134 / 61 |
+| | hotspots300 | 20 / -163 | -24 / 39 | 71 / -271 |
+| | hotspots50 | -44 / -127 | -12 / -181 | -47 / 172 |
+| truvari F1 vs monolithic | windows0 | 0.9982 / 0.9964 | 0.9978 / 0.9933 | 0.9961 / 0.9924 |
+| | hotspots300 | 0.9977 / 0.9966 | 0.9930 / 0.9936 | 0.9930 / 0.9895 |
+| | hotspots50 | 0.9951 / 0.9961 | 0.9929 / 0.9923 | 0.9905 / 0.9921 |
+| truvari FN within 10 kb of a cut | windows0 | 0 / 0 | 7 / 3 | 0 / 0 |
+| | hotspots300 | 0 / 0 | 6 / 9 | 0 / 0 |
+| | hotspots50 | 3 / 2 | 21 / 26 | 32 / 27 |
+| SVs (50 bp+) missed, of 40 / 67 / 112 | windows0 | 0 / 0 | 0 / 2 | 0 / 5 |
+| | hotspots300 | 0 / 0 | 1 / 2 | 2 / 4 |
+| | hotspots50 | 3 / 0 | 1 / 0 | 5 / 5 |
+| CPU, all chunks (s) | windows0 | 456 / 602 | 798 / 1,039 | 1,790 / 2,282 |
+| | hotspots300 | 469 / 567 | 780 / 1,006 | 1,742 / 2,297 |
+| | hotspots50 | 663 / 876 | 1,016 / 1,280 | 1,771 / 2,320 |
+| Longest chunk, wall (s) | windows0 | 93 / 129 | 123 / 156 | 215 / 278 |
+| | hotspots300 | 96 / 115 | 123 / 155 | 210 / 284 |
+| | hotspots50 | 79 / 101 | 104 / 135 | 163 / 215 |
+
+Every chunked build kept all haplotypes identical to monolithic and passed
+every seam check. Peak memory per chunk was 968 to 970 MB in every build
+except the smallest chunk at N = 40 rep1 (853 MB).
 
 What the numbers say:
 
-- **The seams hold.** With three chunks the near-cut excess is 0 to 2 bp at
-  every N. The truvari errors counted as "within 10 kb of a cut" are not at
-  the cut: at N = 20 the 6 to 7 near-cut errors of windows0 and hotspots300
-  are one locus at about 20.657 Mb, 9 kb before one cut and 7 kb after the
-  other. With ten chunks, 46 of the 56 near-cut errors across the three N sit
-  3 to 5 kb after the cut at 20,583,159. Both match the Tier 1 observation that
-  a few loci move with chunk context; the scale (a few kb, near the 5 kb wfmash
-  segment) suggests the first or last segment of a chunk maps differently, but
-  this was not tested.
-- **Fixed windows beat hotspot chunks again.** F1 for windows0 is higher than
-  for hotspots300 at N = 10, 20 and 40, as in all three Tier 1 replicates.
-  Ten small chunks are worst at every N and lose 1 to 5 SVs.
-- **F1 drifts down with N.** For three chunks it falls from 0.998 to 0.993-0.996
-  as haplotypes go from 10 to 40. Part of this is run-to-run noise, which at
-  N = 5 was already 0.9995 between monolithic builds; the second replicate
-  (running) will show how much.
-- **Compute.** At N = 40 the chunked builds use the same CPU as monolithic
-  (ratio 0.98 to 1.01, against 1.3 to 1.4 at N = 5), the longest chunk takes
-  40% of the monolithic wall time, and peak memory per build stays at about
-  970 MB while monolithic reaches 2.3 GB. Below N = 20 memory is a fixed floor
-  near 970 MB for every build, as in Tier 1.
+- **Chunked graphs differ from monolithic about as much as two monolithic
+  builds differ from each other.** Monolithic rep1 against rep2 scores F1
+  0.996, 0.991 and 0.9975 at N = 10, 20 and 40. Chunked against monolithic
+  scores 0.990 to 0.998 across all 18 comparisons. Only hotspots300 at N = 40
+  rep2 (0.9895) falls below the replicate range, and only just.
+- **The seams hold.** With three chunks the near-cut excess is 0 to 5 bp in
+  every run. The truvari errors counted as "within 10 kb of a cut" are not at
+  the cut, and they repeat across replicates: at N = 20 the near-cut errors of
+  windows0 and hotspots300 are one locus at about 20.657 Mb, 9 kb before one
+  cut and 7 kb after the other. With ten chunks, 88 of the 111 near-cut errors
+  across both replicates sit 3 to 5 kb after the cut at 20,583,159. This
+  matches the Tier 1 observation that a few loci move with chunk context; the
+  scale (a few kb, near the 5 kb wfmash segment) suggests the first or last
+  segment of a chunk maps differently, but this was not tested.
+- **Hotspot placement shows no advantage.** windows0 scored higher F1 than
+  hotspots300 in four of six runs (both at N = 40, one each at N = 10 and 20),
+  and every gap is smaller than the gap between two monolithic builds.
+  Ten small chunks lose up to 5 SVs.
+- **F1 drifts down with N, and so does replicate agreement.** For three
+  chunks F1 falls from 0.996-0.998 at N = 10 to 0.990-0.996 at N = 40, but
+  monolithic replicates also agree less at N = 20 and 40 than at N = 5. The
+  drift is at least partly PGGB's own run-to-run variation growing with N.
+- **Compute.** At N = 40 the three-chunk builds use 0.98 to 1.04 times the
+  monolithic CPU (against 1.3 to 1.5 at N = 5 to 10), the longest chunk takes
+  39 to 42% of the monolithic wall time, and peak memory per build stays near
+  970 MB while monolithic reaches 2.3 to 2.4 GB. Replicate 2 ran about 25%
+  slower throughout (shared machine), so compare ratios within a replicate.
 
 ## 6. Hard regions: 17q21.31 and 22q11.2
 
@@ -278,8 +303,7 @@ What this shows:
 
 ## Limits
 
-- Scaling: one replicate per N so far; the second is running. One region of
-  chr21.
+- Scaling: two replicates per N, one region of chr21.
 - Hard regions: two samples (four haplotypes) per region.
 - truvari compares against the monolithic graph, not a truth set.
 - Compression used exact identity only.
