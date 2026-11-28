@@ -1,587 +1,434 @@
-"use client";
-import { useState, useEffect, useCallback, type KeyboardEvent } from "react";
-import type { SampleGraph, NodeInfo, EdgeInfo } from "../types";
-import GraphExplorer from "../components/GraphExplorer";
-import PerfChart from "../components/PerfChart";
+import data from "../public/data/results.json";
+import Explorer from "../components/Explorer";
+import { Bars, DotRows, Figure, Legend, ScalingPlot } from "../components/Charts";
 
-interface ManifestData {
-  data_mode?: string;
-  run?: { run_id?: string; data_mode?: string; git_sha?: string; scientific_status?: string };
-  pipeline_status?: Record<string, string>;
-  samples?: { sample: string; haplotypes: string[]; hap_labels?: Record<string, string> }[];
-  graphs?: Record<string, { nodes: number; edges: number; paths: number; walks: number }>;
+// Every number on this page comes from public/data/results.json, built from docs/ by
+// scripts/build_site_results.py (tests/test_site_results.py fails if it drifts).
+interface Build {
+  status?: string; after_min?: number; why?: string;
+  builds?: number; cpu_h?: number; longest_min?: number; peak_gb?: number; cpu_s_per_mb_hap?: number;
+  f1_all?: number; f1_sv?: number; hg002_f1?: number[]; cpu_vs_mono?: number; stitch_s?: number;
+  seams_pass?: number; seams?: number; paths_identical?: number | null; paths?: number | null;
 }
-interface LatestData {
-  data_mode: string;
-  metrics?: Record<string, Record<string, number>>;
-  stitch?: { status?: string };
-  equivalence?: { verdict?: string };
-  boundaries?: { boundary?: string; status?: string; haplotypes_joined?: number }[];
-}
-interface Finding {
-  step: string; question: string; finding: string;
-  status: "done" | "running"; writeup: { label: string; url: string };
-}
-interface OverviewData {
-  chunks?: { chunk_id: string; reference_start: number; reference_end: number;
-    core_start: number; core_end: number; overlap_left: number; overlap_right: number }[];
-}
+interface Scale { n: number; mono: Build; hotspots1m: Build; windows1m?: Build }
+interface HardGraph { f1_a10k: number[]; f1_a100k: number[]; f1_sd_a10k: number[]; peak_gb: number; ref_revisit_pct: number; hg002_f1?: number[] }
+interface T3Graph { f1: number[]; revisit_pct: number[]; sv_f1: number[]; f1_sd?: number; f1_a10k?: number }
+interface Region { key: string; name: string; locus: string; mono: T3Graph; chunked: T3Graph; sdgroup?: T3Graph }
+const R = data as unknown as {
+  tier4: { runner: { vcpu: number; ram_gb: number }; arm: { start: number; end: number; mb: number };
+    arm_truth_svs: number; arm_sv_diff_calls: number[]; max_concurrent_jobs: number; giab_22q_coverage_pct: number; scaling: Scale[];
+    chunks_n6: { start: number; end: number; wall_min: number; peak_gb: number }[];
+    hard: { region: string; pggb: string; mono: HardGraph; chunked: HardGraph }[] };
+  tier3: { regions: Region[]; r17_truth_svs: number; vcfbub_trap: { region: string; mono_a100k: number; mono_a10k: number; chunked_a10k: number }[];
+    e4_10mb: { mono_wall_s: number; mono_peak_gb: number; chunk_longest_s: number; chunk_peak_mb: number; chunks: number } };
+  where_to_cut: {
+    pilot: { windows_extra_bp: number; hotspots_extra_bp: number; overlap_kb: number };
+    tier1: { f1: Record<"windows" | "windows0" | "hotspots300", number[]>; near_cut_bp: Record<"windows" | "windows0" | "hotspots300", number[]>;
+      random_f1: number[]; random_f1_median: number; mono_vs_mono_f1: number[]; mono_drift_nodes: number; mono_drift_bp: number };
+    tier2: { seqwish_bug_bp: number; seqwish_fixed_bp: number; hard_mono_vs_mono_f1: number[];
+      n40: { mono_cpu_s: number; chunk_cpu_s: number; longest_vs_mono_pct: number; mono_peak_gb: number; chunk_peak_mb: number } };
+  };
+};
 
-const FALLBACK_SAMPLES: { sample: string; haplotypes: string[]; hap_labels?: Record<string, string> }[] = [
-  { sample: "GRCh38", haplotypes: ["0"], hap_labels: { "0": "reference" } },
-  { sample: "HG00673", haplotypes: ["1", "2"], hap_labels: { "1": "paternal", "2": "maternal" } },
-  { sample: "HG00733", haplotypes: ["1", "2"], hap_labels: { "1": "paternal", "2": "maternal" } },
+const GH = "https://github.com/khoivd-dot/linear-scaling-pangenome-sv";
+const doc = (name: string) => `${GH}/blob/main/docs/${name}`;
+const n = (x: number) => x.toLocaleString("en-US");
+const f3 = (x: number) => x.toFixed(3);
+const f2 = (x: number) => x.toFixed(2);
+const mb = (bp: number) => `${bp / 1e6}`;
+
+const T4 = R.tier4;
+const [S6, S20, S40] = T4.scaling;
+const H6 = S6.hotspots1m, W6 = S6.windows1m!, M6 = S6.mono;
+const T3 = R.tier3;
+const [r21, r17, r22] = T3.regions;
+const C = R.where_to_cut;
+const T1 = C.tier1;
+const pick = (region: string, pggb: string) => T4.hard.find(h => h.region === region && h.pggb === pggb)!;
+const P98_22 = pick("22q11.2", "-p 98"), P98_17 = pick("17q21.31", "-p 98"), P90_22 = pick("22q11.2", "-p 90");
+// The fair comparison (-p 98) first, -p 90 as context.
+const HARD_ORDER = [P98_22, pick("17q21.31", "-p 98"), P90_22, pick("17q21.31", "-p 90")];
+const repDiff = Math.max(...T3.regions.flatMap(g => [g.mono, g.chunked, g.sdgroup].filter(Boolean).map(x => Math.abs(x!.f1[0] - x!.f1[1]))));
+
+const WRITEUPS = [
+  ["RECOMBINATION_CHUNKS.md", "Pilot: hotspot cuts on 1 Mb of chr21"],
+  ["TIER1_CONTROLS.md", "Tier 1: shifted and random cuts, three replicates"],
+  ["TIER2.md", "Tier 2: 40 haplotypes, duplicated regions, the seqwish bug"],
+  ["TIER3.md", "Tier 3: scoring against a truth set, 10 Mb"],
+  ["TIER4.md", "Tier 4: the chr21 arm, HG002 against GIAB"],
+];
+
+const AUTHORS = [
+  ["Nhat Quang Tran", "pipeline architecture and graph stitching"],
+  ["Dang Khoi Vu", "pipeline, variant comparison and validation"],
+  ["Michael Olufemi", "pangenome graph construction"],
+  ["Alexander W. Lehr", "documentation and presentation"],
+  ["Ali Rizvi", "DNAnexus, integration and the website"],
 ];
 
 export default function Home() {
-  const [loading, setLoading] = useState(true);
-  const [sg, setSG] = useState<SampleGraph | null>(null);
-  const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
-  const [edgeInfo, setEdgeInfo] = useState<EdgeInfo | null>(null);
-  const [tab, setTab] = useState("explore");
-  const [manifest, setManifest] = useState<ManifestData | null>(null);
-  const [latest, setLatest] = useState<LatestData | null>(null);
-  const [overview, setOverview] = useState<OverviewData | null>(null);
-  const [findings, setFindings] = useState<Finding[] | null>(null);
-  const [graphMode, setGraphMode] = useState("baseline");
-  const [selSample, setSelSample] = useState("GRCh38");
-  const [selHap, setSelHap] = useState("0");
-  const [selSampleB, setSelSampleB] = useState("HG00673");
-  const [selHapB, setSelHapB] = useState("1");
-  const [sgB, setSGB] = useState<SampleGraph | null>(null);
-
-  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-
-  useEffect(() => {
-    Promise.allSettled([
-      fetch(`${basePath}/data/manifest.json`).then(r => (r.ok ? r.json() : Promise.reject())),
-      fetch(`${basePath}/data/latest.json`).then(r => (r.ok ? r.json() : Promise.reject())),
-      fetch(`${basePath}/data/overview.json`).then(r => (r.ok ? r.json() : Promise.reject())),
-      fetch(`${basePath}/data/findings.json`).then(r => (r.ok ? r.json() : Promise.reject())),
-    ]).then(([m, l, o, f]) => {
-      if (m.status === "fulfilled") {
-        setManifest(m.value);
-        const s = m.value.samples;
-        if (s && s.length) { setSelSample(s[0].sample); setSelHap(s[0].haplotypes?.[0] || "0"); }
-      }
-      if (l.status === "fulfilled") setLatest(l.value);
-      if (o.status === "fulfilled") setOverview(o.value);
-      if (f.status === "fulfilled") setFindings(f.value.findings);
-      setLoading(false);
-    });
-  }, []);
-
-  const loadGraph = useCallback(() => {
-    fetch(`${basePath}/data/graphs/${graphMode}/${selSample}_${selHap}.json`)
-      .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((g: SampleGraph) => { setSG(g); setLoading(false); })
-      .catch(() => { setSG(null); setLoading(false); });
-  }, [basePath, graphMode, selSample, selHap]);
-
-  useEffect(() => {
-    const h = window.location.hash.slice(1);
-    if (["explore", "dashboard", "findings", "chunks", "compare", "performance"].includes(h)) setTab(h);
-  }, []);
-
-  useEffect(() => { loadGraph(); }, [loadGraph]);
-  const loadGraphB = useCallback(() => {
-    fetch(`${basePath}/data/graphs/${graphMode}/${selSampleB}_${selHapB}.json`)
-      .then(r => (r.ok ? r.json() : Promise.reject()))
-      .then((g: SampleGraph) => setSGB(g))
-      .catch(() => setSGB(null));
-  }, [basePath, graphMode, selSampleB, selHapB]);
-  useEffect(() => { loadGraphB(); }, [loadGraphB]);
-
-  const samples: { sample: string; haplotypes: string[]; hap_labels?: Record<string, string> }[] =
-    manifest?.samples?.length ? manifest.samples : FALLBACK_SAMPLES;
-  const hapLabels: Record<string, string> = samples.find(s => s.sample === selSample)?.hap_labels || {};
-  const graphNames = manifest?.graphs && Object.keys(manifest.graphs).length
-    ? Object.keys(manifest.graphs) : ["baseline", "stitched"];
-  const bm = latest?.metrics?.baseline || {};
-  const mm = latest?.metrics?.merged || {};
-
-  if (loading) return <div className="container loading">Loading…</div>;
-
-  const renderExplore = () => (
-    <div className="explorer-wrapper">
-      <div className="sidebar">
-        <div className="sidebar-section">
-          <h3>What this graph shows</h3>
-          <div className="what-graph">
-            <p>
-              A <strong>pangenome graph</strong> of a ~1 Mb slice of chromosome 21.
-              Each colored circle is a piece of DNA. Lines show how pieces connect.
-            </p>
-            <div className="key-row"><span className="key-dot shared" aria-hidden="true" />Shared: same across people</div>
-            <div className="key-row"><span className="key-dot unique" aria-hidden="true" />Unique: specific to this person</div>
-            <div className="key-row"><span className="key-dot other" aria-hidden="true" />Nearby pieces</div>
-            <div className="key-why">
-              <strong>Why it matters:</strong> a pangenome represents many people at once.
-              Where the graph <strong>forks</strong>, people differ. Where it <strong>merges</strong>, they match again.
-            </div>
-          </div>
-        </div>
-
-        <div className="sidebar-section">
-          <h3>1. Choose a graph</h3>
-          <p className="sidebar-note">
-            Baseline = built all at once (comparison standard). Stitched = parallel chunks → merged.
-          </p>
-          {graphNames.map(name => (
-            <button key={name} onClick={() => setGraphMode(name)} aria-pressed={graphMode === name}
-              className="graph-mode-btn">
-              {name === "stitched" ? "Stitched (parallel)" : name === "baseline" ? "Baseline" : name}
-            </button>
-          ))}
-          <div className="graph-mode-explainer">
-            {graphMode === "stitched" ? (
-              <>
-                <div className="gm-row"><span className="gm-chip" /> Cut the region into three chunks with no overlap.</div>
-                <div className="gm-row"><span className="gm-chip" /> Build a graph for each chunk in parallel.</div>
-                <div className="gm-row"><span className="gm-chip" /> Join each person&apos;s path across the cuts.</div>
-              </>
-            ) : (
-              <>
-                <div className="gm-row"><span className="gm-chip" /> Build the whole region at once with PGGB.</div>
-                <div className="gm-row"><span className="gm-chip" /> Works for small regions, slow for whole genomes.</div>
-                <div className="gm-row gm-fast"><span className="gm-chip" /> Comparison standard (not biological truth).</div>
-              </>
-            )}
-          </div>
-        </div>
-        <div className="sidebar-section">
-          <h3>2. Choose a person</h3>
-          <p className="sidebar-note">
-            Green = shared with others. Blue = unique to them.
-          </p>
-          {samples.map(s => (
-            <div key={s.sample}>
-              <button onClick={() => { setSelSample(s.sample); setSelHap(s.haplotypes?.[0] || "0"); }}
-                aria-pressed={selSample === s.sample}
-                className="sample-btn">{s.sample}</button>
-              {selSample === s.sample && (
-                <div className="hap-list">
-                  {s.haplotypes.map(h => (
-                    <button key={h} onClick={() => setSelHap(h)} aria-pressed={selHap === h}
-                      className="hap-btn">{hapLabels[h] || h}</button>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div>
-        <GraphExplorer graph={sg}
-          onNodeSelect={(i) => { setNodeInfo(i); setEdgeInfo(null); }}
-          onEdgeSelect={(e) => { setEdgeInfo(e); setNodeInfo(null); }} />
-        {sg && sg.nodes.length <= 3 && graphMode === "baseline" && (
-          <div className="card" style={{ marginTop: 12, fontSize: 15, color: "var(--ink-2)" }}>
-            <strong>Heads up:</strong> this view shows only {sg.nodes.length} node{sg.nodes.length===1?"":"s"} because
-            {selSample === "GRCh38"
-              ? " GRCh38 is stored as one large reference piece in this graph. Try HG00673 or HG00733 to see a richly branched path with shared and unique regions."
-              : " this person's DNA is very similar to the others here — few differences to show."}
-          </div>
-        )}
-      </div>
-      <div className="inspector" aria-live="polite">
-        <h3>Inspector</h3>
-        {nodeInfo ? <div>
-          <div className="inspector-row"><span>DNA piece ID</span><span>{nodeInfo.id}</span></div>
-          <div className="inspector-row"><span>Length</span><span>{(nodeInfo.length/1000).toFixed(1)} Kb</span></div>
-          <div className="inspector-row"><span>Connections</span><span>{nodeInfo.degree}</span></div>
-          <div className="inspector-row"><span>On this person</span><span>{nodeInfo.on_selected_path ? "Yes" : "No"}</span></div>
-          <div className="inspector-row"><span>Shared with others</span><span>{nodeInfo.is_shared ? "Yes" : "No"}</span></div>
-        </div> : edgeInfo ? <div>
-          <div className="inspector-row"><span>Connection</span><span>{edgeInfo.source} → {edgeInfo.target}</span></div>
-          <div className="inspector-row"><span>Direction</span><span>{edgeInfo.source_orientation}→{edgeInfo.target_orientation}</span></div>
-        </div> : <p className="inspector-empty">Click any circle or line to see details.</p>}
-      </div>
-    </div>
-  );
-
-  const metricRows: [string, string][] = [["Nodes", "nodes"], ["Edges", "edges"], ["Paths", "paths"], ["Node sequence (bp)", "sequence_bp"]];
-
-  const renderDashboard = () => (
-    <section className="section">
-      <h2>Results</h2>
-      <p className="section-lede">
-        The whole region built in one go (baseline) against the three chunks stitched back together, same five haplotypes.
-        PGGB is not deterministic, so two baseline builds also differ slightly; see Findings.
-      </p>
-      <div className="card results-table">
-        <table className="data-table">
-          <thead>
-            <tr><th scope="col">Graph metric</th><th scope="col" className="num">Baseline</th><th scope="col" className="num">Stitched</th></tr>
-          </thead>
-          <tbody>
-            {metricRows.filter(([, k]) => bm[k] != null || mm[k] != null).map(([label, k]) => (
-              <tr key={k}><th scope="row">{label}</th><td className="num">{bm[k]?.toLocaleString("en-US") ?? "–"}</td><td className="num">{mm[k]?.toLocaleString("en-US") ?? "–"}</td></tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-
-  const renderChunks = () => {
-    const chunks = overview?.chunks || [];
-    const lo = Math.min(...chunks.map(c => c.reference_start));
-    const hi = Math.max(...chunks.map(c => c.reference_end));
-    const pct = (bp: number) => `${((bp - lo) / Math.max(hi - lo, 1)) * 100}%`;
-    const span = (a: number, b: number) => ({ left: pct(a), width: `${((b - a) / Math.max(hi - lo, 1)) * 100}%` });
-    const hasOverlap = chunks.some(c => c.overlap_left > 0 || c.overlap_right > 0);
-    const bp = (n: number) => n.toLocaleString("en-US");
-    return (
-      <section className="section">
-        <h2>Chunks</h2>
-        {chunks.length > 1 && (
-          <p className="section-lede">
-            {chunks.length} chunks{hasOverlap ? " with overlaps" : ", no overlap"}. Cuts at chr21:{chunks.slice(1).map(c => bp(c.reference_start)).join(" and ")}.
-            Each chunk was built on its own, then each path was joined across the cuts.
-          </p>
-        )}
-        {chunks.length > 0 && (
-          <div className="card">
-            {hasOverlap && (
-              <div className="chunk-legend" aria-hidden="true">
-                <span><span className="swatch swatch-span" /> chunk with overlaps</span>
-                <span><span className="swatch swatch-core" /> core</span>
-              </div>
-            )}
-            {chunks.map(c => (
-              <div key={c.chunk_id} className="chunk-row">
-                <strong className="chunk-id">{c.chunk_id}</strong>
-                <div>
-                  <div className="chunk-track" aria-hidden="true">
-                    <div className="chunk-span" style={span(c.reference_start, c.reference_end)} />
-                    <div className="chunk-core" style={span(c.core_start, c.core_end)} />
-                  </div>
-                  <span className="chunk-coords">
-                    chr21:{bp(c.reference_start)}–{bp(c.reference_end)}{hasOverlap && ` (core ${bp(c.core_start)}–${bp(c.core_end)})`}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        {(latest?.boundaries || []).length > 0 && (
-          <div className="card">
-            {(latest?.boundaries || []).map(b => (
-              <p key={b.boundary} className="boundary-row"><span>{b.boundary}: {b.status}</span><span>joined={b.haplotypes_joined}</span></p>
-            ))}
-          </div>
-        )}
-      </section>
-    );
-  };
-
-  const renderCompare = () => {
-    const hapLabelsB: Record<string, string> = samples.find(s => s.sample === selSampleB)?.hap_labels || {};
-    const idA = new Set((sg?.nodes || []).map(n => n.id));
-    const idB = new Set((sgB?.nodes || []).map(n => n.id));
-    const shared = sg && sgB ? Array.from(idA).filter(id => idB.has(id)).length : null;
-    const onlyA = sg && sgB ? Array.from(idA).filter(id => !idB.has(id)).length : null;
-    const onlyB = sg && sgB ? Array.from(idB).filter(id => !idA.has(id)).length : null;
-    const sameGraphSpace = sg && sgB && sg.graph === sgB.graph;
-    const sharePct = shared != null && sg && sgB ? Math.round(shared / Math.max(idA.size, idB.size, 1) * 100) : null;
-
-    return (
-      <section className="section">
-        <h2>Compare two people</h2>
-        <p className="section-lede">
-          Pick two people and see how much of their DNA is shared vs. unique.
-        </p>
-        <div className="compare-layout">
-          <div className="compare-panel">
-            <h3>Sample A</h3>
-            <select aria-label="Sample A" className="select" value={selSample} onChange={e => { setSelSample(e.target.value); setSelHap(samples.find(s => s.sample === e.target.value)?.haplotypes[0] || "0"); }}>
-              {samples.map(s => <option key={s.sample} value={s.sample}>{s.sample}</option>)}
-            </select>
-            <div className="hap-row">
-              {(samples.find(s => s.sample === selSample)?.haplotypes || []).map(h => (
-                <button key={h} onClick={() => setSelHap(h)} aria-pressed={selHap === h}
-                  className="hap-btn">{hapLabels[h] || h}</button>
-              ))}
-            </div>
-            {sg && <div>
-              <div className="inspector-row"><span>Path length</span><span>{(sg.path?.length_bp ?? 0).toLocaleString()} bp</span></div>
-              <div className="inspector-row"><span>Nodes</span><span>{sg.nodes?.length ?? 0}</span></div>
-              <div className="inspector-row"><span>Edges</span><span>{sg.edges?.length ?? 0}</span></div>
-            </div>}
-          </div>
-          <div className="compare-panel">
-            <h3>Sample B</h3>
-            <select aria-label="Sample B" className="select" value={selSampleB} onChange={e => { setSelSampleB(e.target.value); setSelHapB(samples.find(s => s.sample === e.target.value)?.haplotypes[0] || "0"); }}>
-              {samples.map(s => <option key={s.sample} value={s.sample}>{s.sample}</option>)}
-            </select>
-            <div className="hap-row">
-              {(samples.find(s => s.sample === selSampleB)?.haplotypes || []).map(h => (
-                <button key={h} onClick={() => setSelHapB(h)} aria-pressed={selHapB === h}
-                  className="hap-btn">{hapLabelsB[h] || h}</button>
-              ))}
-            </div>
-            {sgB && <div>
-              <div className="inspector-row"><span>Path length</span><span>{(sgB.path?.length_bp ?? 0).toLocaleString()} bp</span></div>
-              <div className="inspector-row"><span>Nodes</span><span>{sgB.nodes?.length ?? 0}</span></div>
-              <div className="inspector-row"><span>Edges</span><span>{sgB.edges?.length ?? 0}</span></div>
-            </div>}
-          </div>
-        </div>
-        {sg && sgB && (
-          <div className="card compare-diff" style={{ marginTop: 20 }}>
-            <h3>How they differ</h3>
-            <p className="sidebar-note" style={{ marginBottom: 14 }}>
-              Each bar = the DNA pieces that make up that person. Green = pieces they share.
-            </p>
-            {!sameGraphSpace && (
-              <p className="callout-warn" style={{ marginBottom: 14 }}>
-                These two were built in separate graphs, so the numbers are approximate.
-              </p>
-            )}
-            <div style={{ marginBottom: 16 }}>
-              <div className="share-head">
-                <span>Shared</span><span className="mono">{shared ?? "—"} pieces ({sharePct ?? "—"}%)</span>
-              </div>
-              <div className="share-bar"><div className="share-bar-fill" style={{ transform: `scaleX(${(sharePct ?? 0) / 100})` }} /></div>
-            </div>
-            <div className="inspector-row"><span>Shared DNA pieces</span><span>{shared ?? "—"}</span></div>
-            <div className="inspector-row"><span>Only in {selSample}</span><span>{onlyA ?? "—"}</span></div>
-            <div className="inspector-row"><span>Only in {selSampleB}</span><span>{onlyB ?? "—"}</span></div>
-          </div>
-        )}
-      </section>
-    );
-  };
-
-  const renderFindings = () => (
-    <section className="section">
-      <h2>Findings</h2>
-      <p className="section-lede">What each experiment asked and what it found. Each row links to its write-up on GitHub.</p>
-      {findings?.length ? (
-        <div className="card findings-card">
-          <table className="data-table findings-table">
-            <thead>
-              <tr><th scope="col">Step</th><th scope="col">Question</th><th scope="col">Finding</th><th scope="col">Status</th></tr>
-            </thead>
-            <tbody>
-              {findings.map(f => (
-                <tr key={f.question}>
-                  <th scope="row">{f.step}</th>
-                  <td className="f-question">{f.question}</td>
-                  <td>{f.finding} <a className="f-link" href={f.writeup.url}>{f.writeup.label}</a></td>
-                  <td><span className={"status status-" + f.status}>{f.status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : <p className="inspector-empty">Findings could not be loaded.</p>}
-    </section>
-  );
-
-  const renderPerformance = () => (
-    <section className="section">
-      <h2>Performance scaling</h2>
-      <p className="section-lede">
-        Why does the parallel approach matter? Here&apos;s how wall time grows with region size.
-      </p>
-      <div className="chart-frame">
-        <PerfChart />
-      </div>
-      <div className="perf-wrap">
-        <div className="card">
-          <h3>Why this matters</h3>
-          <div className="table-scroll">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th scope="col"><span className="sr-only">Property</span></th>
-                  <th scope="col" className="c-baseline">Baseline</th>
-                  <th scope="col" className="c-stitched">Stitched</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr><th scope="row">Complexity</th><td>O(L) — linear in region size</td><td>O(L/k) → O(1) with chunks</td></tr>
-                <tr><th scope="row">Scaling</th><td>Linear growth</td><td>Near-constant wall time</td></tr>
-                <tr><th scope="row">Memory</th><td>Hits limit ~5 Mb per machine</td><td>Unlimited — each chunk fits in RAM</td></tr>
-                <tr><th scope="row">10 Mb region</th><td className="c-baseline">~1,000s (exceeds memory)</td><td className="c-stitched">~115s (25 parallel chunks)</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-        <div className="callout-warn" style={{ marginTop: 12 }}>
-          <strong>NOTE:</strong> These are theoretical estimates based on PGGB&apos;s O(n²×L) all-pairs alignment with n=5 haplotypes. Measured CPU, wall time and memory at 40 haplotypes are in Findings (Tier 2).
-        </div>
-      </div>
-    </section>
-  );
-
-  const tabs = [
-    { key: "explore", label: "Explore", hint: "look at the graph" },
-    { key: "dashboard", label: "Results", hint: "graph numbers" },
-    { key: "findings", label: "Findings", hint: "what the experiments found" },
-    { key: "chunks", label: "Chunks", hint: "the parallel pieces" },
-    { key: "compare", label: "Compare", hint: "two people side by side" },
-    { key: "performance", label: "Speed", hint: "scaling & time complexity" },
-  ];
-
-  const selectTab = (key: string) => {
-    setTab(key);
-    history.replaceState(null, "", `#${key}`);
-  };
-  // WAI-ARIA tabs: arrow keys, Home and End move between tabs.
-  const onTabKey = (e: KeyboardEvent) => {
-    const i = tabs.findIndex(t => t.key === tab);
-    const next = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
-    if (next === undefined) return;
-    e.preventDefault();
-    const key = tabs[(next + tabs.length) % tabs.length].key;
-    selectTab(key);
-    document.getElementById(`tab-${key}`)?.focus();
-  };
-
-  // The benchmark region, drawn as a genome-browser ruler with the real chunk layout under it.
-  const REGION = [20_000_000, 21_000_000];
-  const at = (bp: number) => `${((bp - REGION[0]) / (REGION[1] - REGION[0])) * 100}%`;
-  const bar = (a: number, b: number) => ({ left: at(a), width: `${((b - a) / (REGION[1] - REGION[0])) * 100}%` });
-  const heroChunks = overview?.chunks || [];
+  const span = T4.arm.end - T4.arm.start;
+  const at = (bp: number) => `${((bp - T4.arm.start) / span) * 100}%`;
+  const ruler = [15, 20, 25, 30, 35, 40];
+  const maxChunkMin = Math.max(...T4.chunks_n6.map(c => c.wall_min));
 
   return (<>
-      <a className="skip-link" href="#explore-heading">Skip to the graph explorer</a>
-      <header className="hero">
-        <div className="container">
-          <p className="locus">GRCh38 <span className="mono">chr21:20,000,000–21,000,000</span></p>
-          <h1>Can We Build Pangenome Graphs in Parallel?</h1>
-          <p className="hero-lede">Normally, building a pangenome graph requires comparing every genome against every other, which is very slow. We are testing a new approach: <strong>build small pieces in parallel</strong>, then stitch them back together.</p>
-          <a className="hero-action" href="#explore-heading">Explore the graph</a>
-          <div className="tracks" aria-hidden="true">
-            <div className="track">
-              <span className="track-name">chr21</span>
-              <div className="track-body">
-                <div className="ruler">
-                  {[20, 20.2, 20.4, 20.6, 20.8, 21].map(mb => (
-                    <span key={mb} style={{ left: at(mb * 1e6) }}>{mb.toFixed(1)}{mb === 21 ? " Mb" : ""}</span>
-                  ))}
+    <a className="skip-link" href="#main">Skip to content</a>
+    <nav className="topnav" aria-label="Sections">
+      <div className="container topnav-inner">
+        <a className="brand" href="#top">Chunked pangenome graphs</a>
+        <ul>
+          <li><a href="#results">Results</a></li>
+          <li><a href="#hard">Hard regions</a></li>
+          <li><a href="#cut">Where to cut</a></li>
+          <li><a href="#explore">Explore</a></li>
+          <li><a href="#methods">Methods</a></li>
+          <li><a href="#team">Team</a></li>
+          <li><a href={GH}>GitHub</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <header className="hero" id="top">
+      <div className="container">
+        <p className="locus">GRCh38 <span className="mono">chr21:{n(T4.arm.start)}-{n(T4.arm.end)}</span> <span>{T4.arm.mb} Mb, {S6.n} haplotypes</span></p>
+        <h1>Partitioned pangenome graphs, measured against monolithic builds</h1>
+        <p className="hero-lede">
+          We cut a chromosome into windows on GRCh38 with no overlap, project the cuts onto every haplotype, build each window with PGGB
+          on its own machine and join the paths end to end. Then we measure accuracy, memory and cost against one monolithic build.
+          On {T4.arm.mb} Mb of chr21 both score F1 {f3(H6.f1_all!)} against the truth set; the partitioned build used {f2(H6.cpu_vs_mono!)} times
+          the CPU, and its largest job needed {f2(H6.peak_gb!)} GB instead of {M6.peak_gb} GB.
+        </p>
+        <div className="hero-actions">
+          <a className="btn btn-primary" href="#results">See the results</a>
+          <a className="btn" href="#explore">Explore the graph</a>
+        </div>
+
+        <div className="tracks" role="img" aria-label={`Genome browser view of chr21 ${mb(T4.arm.start)} to ${mb(T4.arm.end)} Mb. The monolithic build is one job that peaked at ${M6.peak_gb} GB. The ${H6.builds} chunks each peaked at ${H6.peak_gb} GB or less.`}>
+          <div className="track">
+            <span className="track-name">chr21</span>
+            <div className="track-body">
+              <div className="ruler">
+                {ruler.map(m => <span key={m} style={{ left: at(m * 1e6) }}>{m}</span>)}
+                <span style={{ left: "100%" }}>{mb(T4.arm.end)} Mb</span>
+              </div>
+            </div>
+          </div>
+          <div className="track">
+            <span className="track-name">{H6.builds} chunks</span>
+            <div className="track-body">
+              <div className="chunk-lane-arm">
+                {T4.chunks_n6.map((c, i) => (
+                  <span key={c.start} className={i % 2 ? "alt" : ""} style={{ left: at(c.start), width: `calc(${at(c.end + T4.arm.start - c.start)} - 1px)` }}
+                    title={`chr21:${n(c.start)}-${n(c.end)}, ${c.wall_min} min, ${c.peak_gb} GB`} />
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="track track-signal">
+            <span className="track-name">Monolithic<br /><small>peak memory</small></span>
+            <div className="track-body">
+              <div className="signal">
+                <div className="signal-limit"><span>{T4.runner.ram_gb} GB runner</span></div>
+                <div className="signal-mono" style={{ height: `${(M6.peak_gb! / T4.runner.ram_gb) * 100}%` }}>
+                  <span>one build: {M6.peak_gb} GB, {M6.longest_min} min</span>
                 </div>
               </div>
             </div>
-            {heroChunks.length > 0 && (
-              <div className="track">
-                <span className="track-name">chunks</span>
-                <div className="track-body chunk-lane">
-                  {heroChunks.map(c => (
-                    <div key={c.chunk_id}>
-                      <div className="chunk-span" style={bar(c.reference_start, c.reference_end)} />
-                      <div className="chunk-core" style={bar(c.core_start, c.core_end)} />
-                    </div>
-                  ))}
-                </div>
+          </div>
+          <div className="track track-signal">
+            <span className="track-name">Chunked<br /><small>peak memory</small></span>
+            <div className="track-body">
+              <div className="signal">
+                <div className="signal-limit" />
+                {T4.chunks_n6.map(c => (
+                  <span key={c.start} className="signal-chunk" style={{ left: at(c.start), width: `calc(${at(c.end + T4.arm.start - c.start)} - 2px)`, height: `${(c.peak_gb / T4.runner.ram_gb) * 100}%` }} />
+                ))}
+                <span className="signal-note">{H6.builds} builds: at most {f2(H6.peak_gb!)} GB and {maxChunkMin.toFixed(1)} min each</span>
               </div>
-            )}
-            <div className="track">
-              <span className="track-name">graph</span>
-              <div className="track-body"><HeroMotif /></div>
-            </div>
-          </div>
-          <dl className="readout">
-            <div><dt>Region</dt><dd>1 Mb <span>real HPRC chr21</span></dd></div>
-            <div><dt>Baseline</dt><dd>5.5 min</dd></div>
-            <div><dt>Speedup</dt><dd>1.20×</dd></div>
-          </dl>
-          <p className="hero-note">
-            <strong>Benchmark region:</strong> GRCh38 <span className="mono">chr21:20,000,000–21,000,000</span> (1 Mb, 5 haplotypes).
-            The graph viewer draws at most 4,000 nodes around the selected path so it stays fast;
-            the Results table counts the full graphs.
-          </p>
-        </div>
-      </header>
-
-      <main>
-      <section className="band band-white">
-        <div className="container">
-          <div className="band-head"><h2>What are we actually doing?</h2></div>
-          <div className="concepts">
-            <div className="concept">
-              <h3>Genomes</h3>
-              <p>Each person has unique DNA. We compare 5 versions: one reference + 4 from real people.</p>
-            </div>
-            <div className="concept">
-              <h3>Pangenome graph</h3>
-              <p>Instead of comparing to one reference, a graph shows where genomes share the same route and where they take different paths.</p>
-            </div>
-            <div className="concept">
-              <h3>Our idea</h3>
-              <p>Split the genome into pieces, build each piece in parallel, then stitch them back together.</p>
             </div>
           </div>
         </div>
-      </section>
+        <dl className="readout">
+          <div><dt>F1 vs truth</dt><dd>{f3(M6.f1_all!)} <span>monolithic</span> {f3(H6.f1_all!)} <span>chunked</span></dd></div>
+          <div><dt>Seams</dt><dd>{H6.seams_pass}/{H6.seams} <span>passed</span></dd></div>
+          <div><dt>Paths identical</dt><dd>{H6.paths_identical}/{H6.paths}</dd></div>
+          <div><dt>CPU</dt><dd>{f2(H6.cpu_vs_mono!)}x <span>monolithic</span></dd></div>
+        </dl>
+      </div>
+    </header>
 
-      <section className="band">
+    <main id="main">
+      <section className="band band-white" aria-labelledby="how">
         <div className="container">
           <div className="band-head">
-            <h2>How it works, in five steps</h2>
+            <h2 id="how">How it works</h2>
+            <p>PGGB aligns every haplotype against every other, so one build of a long region with many haplotypes needs a large machine.
+              Reference-projected partitioning turns it into many small builds that fit on ordinary runners and run side by side.
+              The idea is not new: impg&apos;s <code>partition</code> and <code>lace</code> do the same two jobs, and in Tier 2 <code>impg lace</code> gave
+              the same graphs as our stitch. What this project adds is the measurement of how partitioned builds differ from monolithic ones.</p>
           </div>
           <ol className="steps-grid">
-            <PlainStep title="Pick a region" desc="We focus on a tiny slice of chromosome 21: just 1 million DNA letters. Small enough to test fast, big enough to matter." />
-            <PlainStep title="Line everyone up" desc="We find where each person's DNA matches our reference, like aligning everyone to the same starting line." />
-            <PlainStep title="Split and build" desc="We cut the region into three chunks of about 333 Kb, with no overlap, and build a little graph for each. All chunks run at the same time." />
-            <PlainStep title="Stitch together" desc="Every person's path crosses each cut, so we join the chunk graphs where the paths cross, like connecting puzzle pieces." />
-            <PlainStep title="Check our work" desc="We compare against building the whole thing in one go (no splitting). The Findings tab lists what each round of tests showed." />
+            <li className="step"><h3>Partition</h3><p>Split GRCh38 into positional windows, fixed or at haplotype-block boundaries, about 1 Mb apart, with zero overlap. Each cut is projected onto every haplotype through its alignment to GRCh38, so neighbouring chunks meet at the same base.</p></li>
+            <li className="step"><h3>Build in parallel</h3><p>Run PGGB on each chunk on its own runner ({T4.runner.vcpu} vCPU, {T4.runner.ram_gb} GB). Chunks do not depend on each other.</p></li>
+            <li className="step"><h3>Stitch</h3><p>Join the chunk graphs where each haplotype path crosses a cut. With no overlap there is nothing to deduplicate: on the chr21 arm {H6.seams_pass} of {H6.seams} seams passed and {H6.paths_identical} of {H6.paths} paths spell the same sequence as in the monolithic graph.</p></li>
+            <li className="step"><h3>Score</h3><p>Compare with a monolithic build of the same input, and score both against variant calls made from the assemblies and, for HG002, against the GIAB Q100 benchmark.</p></li>
           </ol>
         </div>
       </section>
 
-      <section className="container explore-band" aria-labelledby="explore-heading">
-        <div className="band-head">
-          <h2 id="explore-heading" tabIndex={-1}>Explore the graph yourself</h2>
-          <p>Use the tabs below to dig in.</p>
-        </div>
-        <div className="tabs" role="tablist" aria-label="Views" onKeyDown={onTabKey}>
-          {tabs.map(t => (
-            <button key={t.key} id={`tab-${t.key}`} role="tab" aria-selected={tab === t.key} aria-controls="tab-panel"
-              tabIndex={tab === t.key ? 0 : -1} onClick={() => selectTab(t.key)} title={t.hint} className="tab">
-              <span className="tab-label">{t.label}</span>
-              <span className="tab-hint">{t.hint}</span>
-            </button>
-          ))}
-        </div>
-        <div id="tab-panel" role="tabpanel" aria-labelledby={`tab-${tab}`}>
-          {tab === "explore" && renderExplore()}
-          {tab === "dashboard" && renderDashboard()}
-          {tab === "findings" && renderFindings()}
-          {tab === "chunks" && renderChunks()}
-          {tab === "compare" && renderCompare()}
-          {tab === "performance" && renderPerformance()}
+      <section className="band" id="results" aria-labelledby="results-h">
+        <div className="container">
+          <p className="locus">Tier 4 <span className="mono">chr21:{n(T4.arm.start)}-{n(T4.arm.end)}</span></p>
+          <div className="band-head">
+            <h2 id="results-h">A chromosome arm: same accuracy, far smaller jobs</h2>
+            <p>At {S6.n} haplotypes the {H6.builds} chunks and the monolithic build score the same against the truth (F1 {f3(H6.f1_all!)} for all variants).
+              The chunked build used {f2(H6.cpu_vs_mono!)} times the CPU, but no job ran longer than {H6.longest_min} minutes or used more than {f2(H6.peak_gb!)} GB,
+              against {M6.longest_min} minutes and {M6.peak_gb} GB for the monolithic build. At {S20.n} and {S40.n} haplotypes the monolithic build did not
+              finish on a {T4.runner.ram_gb} GB runner, while the chunks needed at most {f2(S20.hotspots1m.peak_gb!)} and {f2(S40.hotspots1m.peak_gb!)} GB.</p>
+          </div>
+          <div className="fig-grid">
+            <Figure title="Peak memory of the largest job"
+              legend={<Legend items={[{ cls: "k-chunked", label: "chunked, largest chunk" }, { cls: "k-mono", label: "monolithic" }, { cls: "k-dnf", label: "monolithic, did not finish" }]} />}
+              caption={<>At {S20.n} haplotypes the kernel killed the monolithic build for running out of memory after {S20.mono.after_min} minutes, so it needed more than {T4.runner.ram_gb} GB. At {S40.n} the runner stopped responding after {S40.mono.after_min! / 60} hours inside PGGB and GitHub kept no log, so there is no measurement.</>}
+              table={<ScaleTable metric="peak_gb" unit="GB" />}>
+              <ScalingPlot xs={[6, 20, 40]} yMax={18} yTicks={[0, 4, 8, 12, 16]} unit="GB" fmt={v => v.toFixed(v >= 10 ? 1 : 2)}
+                chunked={T4.scaling.map(s => ({ x: s.n, y: s.hotspots1m.peak_gb! }))}
+                mono={[{ x: S6.n, y: M6.peak_gb! }]}
+                unfinished={[{ x: S20.n, y: T4.runner.ram_gb, label: "killed: out of memory" }, { x: S40.n, y: 18, label: "runner lost, no data" }]}
+                limit={{ y: T4.runner.ram_gb, label: `runner memory, ${T4.runner.ram_gb} GB` }} />
+            </Figure>
+            <Figure title="Longest single build"
+              legend={<Legend items={[{ cls: "k-chunked", label: "chunked, slowest chunk" }, { cls: "k-mono", label: "monolithic" }, { cls: "k-dnf", label: "monolithic, did not finish" }]} />}
+              caption={<>Wall time of the slowest job, which is how long a fully parallel build takes. Chunks ran up to {T4.max_concurrent_jobs} at a time. Stitching took {S6.hotspots1m.stitch_s}, {S20.hotspots1m.stitch_s} and {S40.hotspots1m.stitch_s} s.</>}
+              table={<ScaleTable metric="longest_min" unit="min" />}>
+              <ScalingPlot xs={[6, 20, 40]} yMax={66} yTicks={[0, 15, 30, 45, 60]} unit="min" fmt={v => v.toFixed(1)}
+                chunked={T4.scaling.map(s => ({ x: s.n, y: s.hotspots1m.longest_min! }))}
+                mono={[{ x: S6.n, y: M6.longest_min! }]}
+                unfinished={[{ x: S20.n, y: S20.mono.after_min!, label: `killed after ${S20.mono.after_min} min` }, { x: S40.n, y: 66, label: `lost after ${S40.mono.after_min! / 60} h` }]} />
+            </Figure>
+          </div>
+
+          <div className="panel table-panel">
+            <h3 className="fig-title">Cost and accuracy on the arm</h3>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead>
+                  <tr><th scope="col">Haplotypes</th><th scope="col">Graph</th><th scope="col" className="num">Builds</th><th scope="col" className="num">CPU-h</th>
+                    <th scope="col" className="num">CPU-s per Mb per haplotype</th><th scope="col" className="num">F1, all</th><th scope="col" className="num">F1, SVs</th>
+                    <th scope="col" className="num">HG002 vs GIAB</th><th scope="col" className="num">Seams passed</th></tr>
+                </thead>
+                <tbody>
+                  {T4.scaling.flatMap(s => {
+                    const rows: [string, Build][] = [["monolithic", s.mono], [`${s.hotspots1m.builds} chunks at haplotype-block boundaries`, s.hotspots1m]];
+                    if (s.windows1m) rows.push([`${s.windows1m.builds} fixed 1 Mb windows`, s.windows1m]);
+                    return rows.map(([label, b]) => (
+                      <tr key={`${s.n}${label}`}>
+                        <th scope="row">{s.n}</th><td>{label}</td>
+                        {b.status && b.status !== "done" ? <td colSpan={7} className="dnf">did not finish: {b.why}, after {b.status === "lost" ? `${b.after_min! / 60} h` : `${b.after_min} min`}</td> : <>
+                          <td className="num">{b.builds}</td><td className="num">{f2(b.cpu_h!)}</td><td className="num">{b.cpu_s_per_mb_hap}</td>
+                          <td className="num">{f3(b.f1_all!)}</td><td className="num">{f3(b.f1_sv!)}</td><td className="num">{b.hg002_f1!.map(f3).join(" / ")}</td>
+                          <td className="num">{b.seams ? `${b.seams_pass}/${b.seams}` : ""}</td></>}
+                      </tr>
+                    ));
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="prose-grid">
+            <p>Cost per Mb per haplotype stays between {S20.hotspots1m.cpu_s_per_mb_hap} and {W6.cpu_s_per_mb_hap} CPU-seconds up to {S20.n} haplotypes ({M6.cpu_s_per_mb_hap} for the monolithic build at {S6.n}) and rises to {S40.hotspots1m.cpu_s_per_mb_hap} at {S40.n}, as PGGB&apos;s all-to-all alignment, which grows with the square of the number of sequences, takes over.</p>
+            <p>Against the curated GIAB HG002 Q100 v5.0q benchmark, HG002 scores {f3(M6.hg002_f1![0])} on both haplotypes in the monolithic graph and in both chunked graphs. The SV differences at {S6.n} haplotypes are {T4.arm_sv_diff_calls[0]} to {T4.arm_sv_diff_calls[1]} calls out of {n(T4.arm_truth_svs)} truth SVs and point in no consistent direction.</p>
+            <p>F1 falls a little as haplotypes are added ({f3(H6.f1_all!)}, {f3(S20.hotspots1m.f1_all!)}, {f3(S40.hotspots1m.f1_all!)}). With no monolithic graph at {S20.n} or {S40.n} haplotypes, that drop cannot yet be split between chunking and graph size. <a href={doc("TIER4.md")}>Read TIER4.md</a></p>
+          </div>
         </div>
       </section>
-      </main>
+
+      <section className="band band-white" id="hard" aria-labelledby="hard-h">
+        <div className="container">
+          <p className="locus">Tiers 3 and 4 <span className="mono">{r22.locus}</span> <span className="mono">{r17.locus}</span></p>
+          <div className="band-head">
+            <h2 id="hard-h">Segmental duplications: better in 22q11.2, mixed in 17q21.31</h2>
+            <p>With PGGB&apos;s human settings (-p 98) and a fair calling step (vcfbub -a 10000), the partitioned 22q11.2 graph scores F1 {f3(P98_22.chunked.f1_a10k[0])} against {f3(P98_22.mono.f1_a10k[0])} for the
+              monolithic graph, and {f3(P98_22.chunked.f1_sd_a10k[0])} against {f3(P98_22.mono.f1_sd_a10k[0])} inside the duplications. Against GIAB, HG002 scores {f3(P98_22.chunked.hg002_f1![0])} in both graphs.
+              17q21.31 is mixed: overall F1 is higher partitioned ({f3(P98_17.chunked.f1_a10k[0])} against {f3(P98_17.mono.f1_a10k[0])}), but in Tier 3 at -p 90 partitioning lowered SV F1 from {f2(r17.mono.sv_f1[0])} to {f2(r17.chunked.sv_f1[0])}, on only {T3.r17_truth_svs} truth SVs.</p>
+            <p>The likely cause is paralog merging. wfmash aligns copies that are 90% or more identical and seqwish folds them into one node, so a haplotype path runs through the same nodes twice.
+              Cuts that put the copies in different chunks stop this from happening.</p>
+          </div>
+          <div className="fig-grid">
+            <Figure title="F1 against the truth, monolithic and chunked"
+              legend={<Legend items={[{ cls: "k-chunked", label: "chunked" }, { cls: "k-mono", label: "monolithic" }]} />}
+              caption={<>Tier 4: {S6.n} haplotypes (HG00673, HG00733, HG002), all variant sizes, vcfbub -a 10000, both replicates drawn. HG002 is scored against GIAB v5.0q, the others against calls from HPRC&apos;s assembly alignments. The axis starts at 0.6.</>}
+              table={<table className="data-table"><thead><tr><th scope="col">Region</th><th scope="col">PGGB</th><th scope="col" className="num">Monolithic, rep 1 / 2</th><th scope="col" className="num">Chunked, rep 1 / 2</th></tr></thead>
+                <tbody>{HARD_ORDER.map(h => <tr key={h.region + h.pggb}><th scope="row">{h.region}</th><td>{h.pggb}</td><td className="num">{h.mono.f1_a10k.map(f3).join(" / ")}</td><td className="num">{h.chunked.f1_a10k.map(f3).join(" / ")}</td></tr>)}</tbody></table>}>
+              <DotRows lo={0.6} hi={1} ticks={[0.6, 0.7, 0.8, 0.9, 1]} fmt={v => v.toFixed(1)}
+                rows={HARD_ORDER.map(h => {
+                  const m = Math.min(...h.mono.f1_a10k), c = Math.max(...h.chunked.f1_a10k);
+                  return {
+                    label: <>{h.region} <span className="mono">{h.pggb}</span></>,
+                    span: [m, c] as [number, number],
+                    dots: [
+                      ...h.mono.f1_a10k.map((v, i) => ({ v, cls: "d-mono", title: `monolithic, rep ${i + 1}: ${f3(v)}`, label: i === 0 ? f3(v) : undefined, side: "left" as const })),
+                      ...h.chunked.f1_a10k.map((v, i) => ({ v, cls: "d-chunked", title: `chunked, rep ${i + 1}: ${f3(v)}`, label: i === 0 ? f3(v) : undefined })),
+                    ],
+                  };
+                })} />
+            </Figure>
+            <Figure title="Share of each haplotype path that revisits a node"
+              legend={<Legend items={[{ cls: "k-chunked", label: "chunked" }, { cls: "k-mono", label: "monolithic" }]} />}
+              caption={<>Tier 3: 4 haplotypes, PGGB -p 90, length-weighted over all paths, replicate 1 (replicate 2 gives the same shares). A path can revisit a node only if the graph merged two copies of a sequence from the same haplotype.</>}
+              table={<table className="data-table"><thead><tr><th scope="col">Region</th><th scope="col" className="num">Monolithic</th><th scope="col" className="num">Chunked</th><th scope="col" className="num">Duplication-aware groups</th></tr></thead>
+                <tbody>{T3.regions.map(g => <tr key={g.key}><th scope="row">{g.name}</th><td className="num">{g.mono.revisit_pct.join(" / ")}%</td><td className="num">{g.chunked.revisit_pct.join(" / ")}%</td><td className="num">{g.sdgroup ? `${g.sdgroup.revisit_pct.join(" / ")}%` : ""}</td></tr>)}</tbody></table>}>
+              <Bars max={14} unit="%" groups={T3.regions.map(g => ({
+                label: g.name,
+                bars: [{ v: g.mono.revisit_pct[0], cls: "b-mono", name: "monolithic" }, { v: g.chunked.revisit_pct[0], cls: "b-chunked", name: "chunked" }],
+              }))} />
+            </Figure>
+          </div>
+          <div className="prose-grid">
+            <p>Tier 3, with 4 haplotypes at -p 90, gave a wider gap in 22q11.2 (F1 {f3(r22.chunked.f1[0])} against {f3(r22.mono.f1[0])}), but part of it is the vcfbub artefact described below:
+              rescored with -a 10000 the monolithic graph reaches {f3(r22.mono.f1_a10k!)}, against {f3(r22.chunked.f1_a10k!)} partitioned. Replicates agree to within {f3(repDiff)}.</p>
+            <p>Building the chunks that share a duplication in one job does the opposite of what was hoped. That job collapses the paralogs even harder: paths revisit {r22.sdgroup!.revisit_pct[0].toFixed(1)}% in 22q11.2 and {r17.sdgroup!.revisit_pct[0].toFixed(1)}% in 17q21.31, and F1 in 22q11.2 drops to {f3(r22.sdgroup!.f1[0])}.</p>
+            <p>At -p 90, HG002&apos;s GIAB F1 in 22q11.2 is {f3(P90_22.chunked.hg002_f1![0])} partitioned against {f3(P90_22.mono.hg002_f1![0])} and {f3(P90_22.mono.hg002_f1![1])} monolithic for the two haplotypes.
+              GIAB&apos;s benchmark regions cover about {T4.giab_22q_coverage_pct}% of 22q11.2 and none of 17q21.31, and they leave out much of the LCR22s, where the graphs differ most.</p>
+          </div>
+          <div className="panel trap">
+            <div>
+              <h3 className="fig-title">The vcfbub calling trap</h3>
+              <p>With PGGB&apos;s recommended human settings (-p 98 -s 10000 -k 47) and the PGGB pipeline&apos;s <code>vcfbub -l 0 -a 100000</code>, the monolithic 22q11.2 VCF lost almost every call: F1 {f3(T3.vcfbub_trap[1].mono_a100k)} in Tier 3 and {f3(T4.hard[1].mono.f1_a100k[0])} in Tier 4.
+                The reference path loops through a short top-level bubble that hides hundreds of kb of nested sites, and vcfbub drops them. The graph itself looks fine. Rescored with <code>-a 10000</code> the monolithic graphs recover, but still trail the chunked graphs.
+                Before trusting a monolithic VCF of a duplicated region, check whether the reference path revisits nodes.</p>
+            </div>
+            <div className="table-scroll">
+              <table className="data-table">
+                <thead><tr><th scope="col">Tier 3, -p 98</th><th scope="col" className="num">Monolithic, -a 100000</th><th scope="col" className="num">Monolithic, -a 10000</th><th scope="col" className="num">Chunked, -a 10000</th></tr></thead>
+                <tbody>{T3.vcfbub_trap.map(t => <tr key={t.region}><th scope="row">{t.region}</th><td className="num">{f3(t.mono_a100k)}</td><td className="num">{f3(t.mono_a10k)}</td><td className="num">{f3(t.chunked_a10k)}</td></tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+          <p className="links"><a href={doc("TIER3.md")}>Read TIER3.md</a> <a href={doc("TIER4.md")}>Read TIER4.md</a></p>
+        </div>
+      </section>
+
+      <section className="band" id="cut" aria-labelledby="cut-h">
+        <div className="container">
+          <p className="locus">Pilot, Tiers 1 and 2 <span className="mono">{r21.locus}</span></p>
+          <div className="band-head">
+            <h2 id="cut-h">Where to cut matters less than not overlapping</h2>
+            <p>The pilot cut 1 Mb of chr21 at recombination hotspots and got a graph closer to the monolithic one: {C.pilot.hotspots_extra_bp} bp of extra node sequence,
+              against {n(C.pilot.windows_extra_bp)} bp for fixed windows with {C.pilot.overlap_kb} kb of overlap. Tier 1 asked why. All {n(T1.near_cut_bp.windows[0])} bp sit within 10 kb of a seam,
+              in all three replicates. Remove the overlap and the seams carry {T1.near_cut_bp.windows0[0]} bp wherever the cut falls.</p>
+          </div>
+          <div className="fig-grid fig-grid-wide">
+            <Figure title="Agreement with the monolithic graph, against run-to-run noise"
+              caption={<>truvari F1 of each chunked graph against a monolithic build of the same input, 1 Mb, 5 paths. Hotspot and fixed cuts: three replicates. Random cuts: one run each, median {T1.random_f1_median} (line). The grey band is the range between two monolithic builds.</>}
+              table={<table className="data-table"><thead><tr><th scope="col">Chunking</th><th scope="col" className="num">truvari F1</th><th scope="col" className="num">Extra bp within 10 kb of a cut</th></tr></thead>
+                <tbody>
+                  <tr><th scope="row">Hotspot cuts</th><td className="num">{T1.f1.hotspots300.join(" / ")}</td><td className="num">{T1.near_cut_bp.hotspots300.join(" / ")}</td></tr>
+                  <tr><th scope="row">Fixed cuts, no overlap</th><td className="num">{T1.f1.windows0.join(" / ")}</td><td className="num">{T1.near_cut_bp.windows0.join(" / ")}</td></tr>
+                  <tr><th scope="row">Fixed cuts, {C.pilot.overlap_kb} kb overlap</th><td className="num">{T1.f1.windows.join(" / ")}</td><td className="num">{T1.near_cut_bp.windows.map(n).join(" / ")}</td></tr>
+                  <tr><th scope="row">20 random cut sets</th><td className="num">{T1.random_f1.join(", ")}</td><td /></tr>
+                  <tr><th scope="row">Two monolithic builds</th><td className="num">{T1.mono_vs_mono_f1.join(" / ")}</td><td /></tr>
+                </tbody></table>}>
+              <DotRows lo={0.9955} hi={1} ticks={[0.996, 0.997, 0.998, 0.999, 1]} fmt={v => v.toFixed(3)}
+                rows={[
+                  { label: "20 random cut sets", band: [T1.mono_vs_mono_f1[0], 1], mark: T1.random_f1_median,
+                    dots: T1.random_f1.map(v => ({ v, cls: "d-noise", title: `random cuts: ${v}` })) },
+                  { label: "Hotspot cuts", band: [T1.mono_vs_mono_f1[0], 1], dots: T1.f1.hotspots300.map((v, i) => ({ v, cls: "d-chunked", title: `hotspot cuts, rep ${i + 1}: ${v}`, })) },
+                  { label: "Fixed cuts, no overlap", band: [T1.mono_vs_mono_f1[0], 1], dots: T1.f1.windows0.map((v, i) => ({ v, cls: "d-chunked", title: `fixed, no overlap, rep ${i + 1}: ${v}` })) },
+                  { label: `Fixed cuts, ${C.pilot.overlap_kb} kb overlap`, band: [T1.mono_vs_mono_f1[0], 1], dots: T1.f1.windows.map((v, i) => ({ v, cls: "d-chunked d-hollow", title: `fixed, ${C.pilot.overlap_kb} kb overlap, rep ${i + 1}: ${v}` })) },
+                  { label: "Two monolithic builds", band: [T1.mono_vs_mono_f1[0], 1], dots: T1.mono_vs_mono_f1.map(v => ({ v, cls: "d-mono", title: `monolithic against monolithic: ${v}` })) },
+                ]} />
+            </Figure>
+            <div className="prose-stack">
+              <p>Hotspot cuts land at the median of 20 random cut sets (truvari F1 {T1.f1.hotspots300[0]} against {T1.random_f1_median}).
+                Fixed zero-overlap windows did better than hotspot cuts in all three replicates, and again at 10, 20 and 40 haplotypes in Tier 2.</p>
+              <p>PGGB is not deterministic. Of three monolithic builds of the same input, two were identical and the third differed by {T1.mono_drift_nodes} nodes and {T1.mono_drift_bp} bp.
+                So every comparison here is repeated and read against that noise, not against zero.</p>
+              <p>At 40 haplotypes on the same 1 Mb, three chunks used about the same CPU as the monolithic build ({n(C.tier2.n40.chunk_cpu_s)} against {n(C.tier2.n40.mono_cpu_s)} s),
+                the slowest chunk finished in {C.tier2.n40.longest_vs_mono_pct}% of its wall time, and no chunk used more than {C.tier2.n40.chunk_peak_mb} MB, against {C.tier2.n40.mono_peak_gb} GB.</p>
+            </div>
+          </div>
+          <div className="panel bug">
+            <h3 className="fig-title">A seqwish bug, found and fixed</h3>
+            <p>The pinned PGGB v0.6.0 image passes its default seqwish <code>-B 10M</code> without converting the suffix. seqwish reads it as 1,000,000,
+              and its batched transitive closure then loses merges across batch edges. Rerun on the same 22q11.2 alignments, seqwish made {n(C.tier2.seqwish_bug_bp)} bp of node sequence
+              with <code>-B 10M</code> and {n(C.tier2.seqwish_fixed_bp)} bp with <code>-B 30000000</code>. Every runner in this repository now passes a numeric value.</p>
+          </div>
+          <p className="links"><a href={doc("RECOMBINATION_CHUNKS.md")}>Read RECOMBINATION_CHUNKS.md</a> <a href={doc("TIER1_CONTROLS.md")}>Read TIER1_CONTROLS.md</a> <a href={doc("TIER2.md")}>Read TIER2.md</a></p>
+        </div>
+      </section>
+
+      <section className="band band-white explore-band" id="explore" aria-labelledby="explore-h">
+        <div className="container">
+          <p className="locus">Pilot graph <span className="mono">{r21.locus}</span></p>
+          <div className="band-head">
+            <h2 id="explore-h">Explore the pilot graph</h2>
+            <p>The 1 Mb pilot with GRCh38, HG00673 and HG00733, built in one go and from three zero-overlap chunks. Pick a graph and a haplotype:
+              green nodes are shared with other haplotypes, blue ones are unique. The viewer draws at most 4,000 nodes around the selected path.</p>
+          </div>
+          <Explorer />
+        </div>
+      </section>
+
+      <section className="band" id="methods" aria-labelledby="methods-h">
+        <div className="container">
+          <div className="band-head"><h2 id="methods-h">Methods and how to reproduce them</h2></div>
+          <div className="methods">
+            <dl className="method-list">
+              <div><dt>Data</dt><dd>HPRC release 2 assemblies and GRCh38 from Ensembl release 112. The contig holding each region is found from the release&apos;s minigraph-cactus chains and fetched with remote <code>samtools faidx</code>, so no whole assembly is downloaded.</dd></div>
+              <div><dt>Cuts</dt><dd>Manifests from fixed windows or haploblocks.org block boundaries, projected onto each haplotype through its minimap2 alignment to GRCh38 (longest colinear chain), with zero overlap.</dd></div>
+              <div><dt>Graphs</dt><dd>PGGB v0.6.0, pinned image, <code>-p 90 -s 5000 -K 19 -k 29</code> with a numeric seqwish <code>-B</code>, or <code>-p 98 -s 10000 -k 47</code> where marked. CPU time and peak memory from GNU <code>time -v</code>.</dd></div>
+              <div><dt>Stitch</dt><dd>Chunk graphs joined where each path crosses a cut. <code>impg lace</code> gives the same graphs.</dd></div>
+              <div><dt>Scoring</dt><dd><code>vg deconstruct</code>, <code>vcfbub</code>, <code>vcfwave</code>, <code>bcftools norm</code> and truvari 5.5.0. Truth calls from HPRC&apos;s winnowmap assembly alignments, dipcall style; GIAB v5.0q for HG002. <code>path_revisits.py</code> measures paralog merging.</dd></div>
+            </dl>
+            <div className="repro">
+              <h3>Reproduce</h3>
+              <p>Every Tier 4 number comes from a dispatch of <code>.github/workflows/experiment.yml</code>: stage <code>tier4-arm</code> with <code>n</code> = 6, 20 or 40, and <code>tier4-hard</code> with <code>pggb</code> = p90 or p98 and <code>rep</code> = 1 or 2.
+                One job runs per chunk, and each run commits a summary JSON to <code>docs/tier4_runs/</code>. The <code>tier3-*</code> stages run the Tier 3 scripts on one runner.</p>
+              <p>This page reads its numbers from <code>web/public/data/results.json</code>, which <code>scripts/build_site_results.py</code> builds from the files in <code>docs/</code>. A test fails when the two drift apart.</p>
+              <pre><code>python3 scripts/build_site_results.py{"\n"}python3 -m pytest tests/test_site_results.py</code></pre>
+              <p><a href={`${GH}/blob/main/.github/workflows/experiment.yml`}>experiment.yml</a> <a href={`${GH}/tree/main/pipeline/benchmark`}>pipeline/benchmark</a></p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="band band-white" id="team" aria-labelledby="team-h">
+        <div className="container team">
+          <div>
+            <h2 id="team-h">Team</h2>
+            <p className="team-note">Built at the BCM SV Hackathon 2026. Paper authors:</p>
+            <ul className="authors">
+              {AUTHORS.map(([name, role]) => <li key={name}><strong>{name}</strong><span>{role}</span></li>)}
+            </ul>
+            <p className="team-note team-after">The hackathon team also included Lex, who ran the PGGB cost benchmarks.</p>
+          </div>
+          <div>
+            <h2>Write-ups</h2>
+            <ul className="writeups">
+              {WRITEUPS.map(([file, what]) => <li key={file}><a href={doc(file)}><span className="mono">{file}</span></a><span>{what}</span></li>)}
+              <li><a href={doc("paper/manuscript.md")}><span className="mono">paper/manuscript.md</span></a><span>Manuscript draft</span></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer className="footer">
+      <div className="container"><p>Code, data and write-ups: <a href={GH}>github.com/khoivd-dot/linear-scaling-pangenome-sv</a>. MIT licence.</p></div>
+    </footer>
   </>);
 }
 
-function PlainStep({ title, desc }: { title: string; desc: string }) {
+function ScaleTable({ metric, unit }: { metric: "peak_gb" | "longest_min"; unit: string }) {
   return (
-    <li className="step">
-      <h3>{title}</h3>
-      <p>{desc}</p>
-    </li>
-  );
-}
-
-// Decorative sketch: a shared backbone (green) with a branch where one haplotype differs (blue).
-// Drawn in percentages so it spans the track at any width without stretching the nodes.
-function HeroMotif() {
-  return (
-    <svg className="hero-motif" aria-hidden="true" focusable="false">
-      <svg x="36%" width="28%" height="64" viewBox="0 0 100 64" preserveAspectRatio="none">
-        <path className="motif-unique" d="M0 46 C 25 46, 25 14, 50 14 S 75 46, 100 46" strokeWidth="3" vectorEffect="non-scaling-stroke" />
-      </svg>
-      <line className="motif-shared" x1="1%" y1="46" x2="99%" y2="46" strokeWidth="4" strokeLinecap="round" />
-      {[2, 19, 36, 64, 81, 98].map(x => <circle key={x} className="motif-node-shared" cx={`${x}%`} cy="46" r="6" strokeWidth="2" />)}
-      {[43, 50, 57].map(x => <circle key={x} className="motif-node-unique" cx={`${x}%`} cy={x === 50 ? 14 : 30} r="5.5" strokeWidth="2" />)}
-      <text className="motif-label-shared" x="20%" y="32">shared</text>
-      <text className="motif-label-unique" x="59%" y="14">unique</text>
-    </svg>
+    <table className="data-table">
+      <thead><tr><th scope="col">Haplotypes</th><th scope="col" className="num">Monolithic</th><th scope="col" className="num">Chunked, largest job</th></tr></thead>
+      <tbody>{T4.scaling.map(s => (
+        <tr key={s.n}><th scope="row">{s.n}</th>
+          <td className="num">{s.mono.status === "done" ? `${s.mono[metric]} ${unit}` : `did not finish (${s.mono.status})`}</td>
+          <td className="num">{s.hotspots1m[metric]} {unit}</td></tr>
+      ))}</tbody>
+    </table>
   );
 }
