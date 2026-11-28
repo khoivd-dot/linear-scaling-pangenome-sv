@@ -1,0 +1,136 @@
+{
+ "sample": "HG00673",
+ "region": "chr21:20000000-25000000",
+ "haps": {
+  "HG00673#1": {
+   "bp": {
+    "dipcall_bed": 4998041,
+    "truth_bed": 4998399,
+    "both": 4997963
+   },
+   "all": {
+    "total": {
+     "tp_base": 7796,
+     "fn": 12,
+     "tp_comp": 7796,
+     "fp": 18,
+     "precision": 0.9977,
+     "recall": 0.9985,
+     "f1": 0.9981
+    },
+    "sd": {
+     "tp_base": 4,
+     "fn": 0,
+     "tp_comp": 4,
+     "fp": 0,
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0
+    },
+    "other": {
+     "tp_base": 7792,
+     "fn": 12,
+     "tp_comp": 7792,
+     "fp": 18,
+     "precision": 0.9977,
+     "recall": 0.9985,
+     "f1": 0.9981
+    }
+   },
+   "sv": {
+    "total": {
+     "tp_base": 34,
+     "fn": 0,
+     "tp_comp": 34,
+     "fp": 0,
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0
+    },
+    "sd": {
+     "tp_base": 0,
+     "fn": 0,
+     "tp_comp": 0,
+     "fp": 0,
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0
+    },
+    "other": {
+     "tp_base": 34,
+     "fn": 0,
+     "tp_comp": 34,
+     "fp": 0,
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0
+    }
+   }
+  },
+  "HG00673#2": {
+   "bp": {
+    "dipcall_bed": 4998041,
+    "truth_bed": 4997682,
+    "both": 4997426
+   },
+   "all": {
+    "total": {
+     "tp_base": 8479,
+     "fn": 21,
+     "tp_comp": 8480,
+     "fp": 15,
+     "precision": 0.9982,
+     "recall": 0.9975,
+     "f1": 0.9979
+    },
+    "sd": {
+     "tp_base": 7,
+     "fn": 0,
+     "tp_comp": 7,
+     "fp": 0,
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0
+    },
+    "other": {
+     "tp_base": 8472,
+     "fn": 21,
+     "tp_comp": 8473,
+     "fp": 15,
+     "precision": 0.9982,
+     "recall": 0.9975,
+     "f1": 0.9979
+    }
+   },
+   "sv": {
+    "total": {
+     "tp_base": 33,
+     "fn": 0,
+     "tp_comp": 33,
+     "fp": 0,
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0
+    },
+    "sd": {
+     "tp_base": 0,
+     "fn": 0,
+     "tp_comp": 0,
+     "fp": 0,
+     "precision": 0.0,
+     "recall": 0.0,
+     "f1": 0.0
+    },
+    "other": {
+     "tp_base": 33,
+     "fn": 0,
+     "tp_comp": 33,
+     "fp": 0,
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0
+    }
+   }
+  }
+ }
+}
