@@ -11,7 +11,7 @@ on:
       stage:
         description: "What to run"
         type: choice
-        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard, tier6-mid, verify-image]
+        options: [tier3-e1e2, tier3-e4, tier3-scaling, tier4-arm, tier4-hard, tier6-mid, dipcall-check, verify-image]
         default: tier4-hard
       reps:
         description: "Replicates (tier3-e1e2 only)"
@@ -89,6 +89,40 @@ jobs:
           IMG=$(grep -E '^\s+image: ' config/pipeline.yaml | awk '{print $2}')
           docker pull -q $IMG
           docker run --rm $IMG bash -lc 'for t in pggb wfmash seqwish smoothxg odgi gfaffix vg; do echo "== $t"; ($t --version 2>&1; $t version 2>&1) | head -4; done; grep -m3 -i version $(which pggb)'
+
+  dipcall-check:
+    # K1 / Tier 6 E10: stand-alone dipcall vs the Tier 3 truth calls in chr21:20-25 Mb
+    if: inputs.stage == 'dipcall-check'
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    permissions:
+      contents: write
+    env: { W: /home/runner/work4, PY: /home/runner/venv/bin/python, TRUVARI: /home/runner/venv/bin/truvari }
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          python3 -m venv /home/runner/venv && /home/runner/venv/bin/pip install -q pysam pyyaml "truvari==5.5.0"
+          docker pull -q ghcr.io/pangenome/pggb@sha256:44f3563c5c3e2032c293fe309eed178b754021b07963ca4857e4ae5efda86474
+          curl -sSL --retry 4 https://github.com/lh3/dipcall/releases/download/v0.3/dipcall-0.3_x64-linux.tar.bz2 | tar -jxf - -C /home/runner
+          echo /home/runner/dipcall.kit >> $GITHUB_PATH
+      - run: |
+          bash pipeline/benchmark/tier4/fetch_ref.sh chr21
+          bash pipeline/benchmark/tier4/truth.sh mid
+      - run: bash pipeline/benchmark/tier6/dipcall_check.sh mid res
+      - name: Commit the result to the branch (docs/tier6_runs/)
+        if: startsWith(github.ref, 'refs/heads/claude/')
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          BR=${GITHUB_REF#refs/heads/}
+          for i in 1 2 3 4 5; do
+            git fetch -q origin $BR && git reset -q --hard FETCH_HEAD && mkdir -p docs/tier6_runs && cp res/*.json docs/tier6_runs/
+            git add docs/tier6_runs/
+            git diff --cached --quiet || git commit -q -m "Tier 6 dipcall check (run ${{ github.run_id }})"
+            git push -q origin HEAD:$BR && break; sleep $((i * 10))
+          done
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: dipcall-check, path: "/home/runner/work4/dipcall/*.log", retention-days: 30 }
 
   t4-plan:
     if: startsWith(inputs.stage, 'tier4') || startsWith(inputs.stage, 'tier6')
