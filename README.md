@@ -6,53 +6,29 @@
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-2ea44f)](https://collaborativebioinformatics.github.io/linear-scaling-pangenome-sv/)
 [![DNAnexus](https://img.shields.io/badge/DNAnexus-Group11__2026-orange)]()
 
+This repository builds PGGB pangenome graphs in parallel chunks, stitches the chunk graphs back into one graph, and compares the result with a monolithic PGGB build of the same region and haplotypes. On HPRC release 2 assemblies, chunks cut without overlap reproduce every haplotype path of the monolithic graph, and where the cuts fall matters little. In segmental duplications the chunked graphs score closer to assembly-based truth calls than the monolithic graph does.
+
 > **Research question:** Can pangenome graphs be built in parallel chunks and stitched back together while preserving haplotype paths, topology, and variant representation compared to a monolithic build?
 
-**🔗 Live:** [collaborativebioinformatics.github.io/linear-scaling-pangenome-sv](https://collaborativebioinformatics.github.io/linear-scaling-pangenome-sv/) | [Vercel mirror](https://web-lemon-zeta-40.vercel.app)
+Live site: [collaborativebioinformatics.github.io/linear-scaling-pangenome-sv](https://collaborativebioinformatics.github.io/linear-scaling-pangenome-sv/) | [Vercel mirror](https://web-lemon-zeta-40.vercel.app)
 
-## 🚀 Quick Start
+## Contents
 
-### 1-Minute Local Demo (no DNAnexus, no HPRC data)
+1. [Key findings](#key-findings)
+2. [Quick start](#quick-start)
+3. [How it works](#how-it-works)
+4. [Experiments and reproducibility](#experiments-and-reproducibility)
+5. [Web explorer](#web-explorer)
+6. [Configuration](#configuration)
+7. [DNAnexus](#dnanexus)
+8. [Repository structure](#repository-structure)
+9. [Current state](#current-state)
+10. [Team](#team)
+11. [License](#license)
 
-```bash
-git clone https://github.com/collaborativebioinformatics/linear-scaling-pangenome-sv.git
-cd linear-scaling-pangenome-sv
-pip install pyyaml pytest
-make check           # Verify your environment
-make demo            # Build synthetic graphs, stitch, export web data
-make test            # 204 tests
-make web             # Open http://localhost:3000
-```
+## Key findings
 
-### Explore the Real 1 Mb chr21 Benchmark
-
-Visit **[web-lemon-zeta-40.vercel.app](https://web-lemon-zeta-40.vercel.app)** to see the real HPRC baseline:
-
-- **🧬 Explore** — interactive Cytoscape graph with color-coded shared/unique DNA
-- **📊 Results** — 10,389 nodes, 14,185 edges
-- **🧩 Chunks** — 3 overlapping 400 Kb chunks
-- **⚖️ Compare** — compare any two people's DNA
-- **⏱️ Speed** — complexity scaling chart
-
----
-
-## 📊 Real Benchmark Results (DNAnexus, Aug 28 2026)
-
-| Metric | Value |
-|--------|-------|
-| **Region** | GRCh38 chr21:20,000,000–21,000,000 (1,000,000 bp) |
-| **Haplotypes** | 5 (GRCh38 + HG00673/733 paternal+maternal) |
-| **Baseline nodes** | 10,389 |
-| **Baseline edges** | 14,185 |
-| **Baseline wall time** | 327s (5.5 min) on `mem3_ssd1_v2_x16` |
-| **Parallel wall time** | 272s (4.5 min) — 1.20× speedup |
-| **PGGB** | v0.6.0, pinned `sha256:44f3563c`, -K 19, -k 29 |
-| **Chunk status** | ✅ Rebuilt Nov 2026 with zero-overlap chunks projected onto every haplotype ([Tier 1](docs/TIER1_CONTROLS.md)) |
-| **Stitch / Truvari** | ✅ Every haplotype path identical to the monolithic build; truvari F1 ≈ 0.998 vs monolithic ([Tier 1](docs/TIER1_CONTROLS.md), [Tier 2](docs/TIER2.md)) |
-
----
-
-## 🔬 Where to Cut: Chunking Experiments (Nov 2026)
+### Where to cut: chunking experiments (Nov 2026)
 
 These runs ask whether the place you cut a region changes the stitched graph. All are on the 4 vCPU cloud container with the pinned PGGB v0.6.0 image, real HPRC release 2 assemblies, and GRCh38 chr21:20-21 Mb unless noted. Full write-ups are in `docs/`.
 
@@ -74,97 +50,51 @@ What to take from it:
 - **Replicate everything.** The pinned PGGB image is not deterministic: two monolithic builds of the same input differ by up to 9 nodes and 47 bp, which is the size of most effects above.
 - **seqwish bug, fixed here.** PGGB v0.6.0 passes its default `-B 10M` to seqwish unparsed, so any input sequence over about 1 Mb comes out under-collapsed (22q11.2: 12.3 Mb of node sequence instead of 4.3 Mb). `config/pipeline.yaml` now sets `transclose_batch: 100000000` and every runner passes it; set `PGGB_TRANSCLOSE_BATCH=pggb-default` to get the old behaviour. The 1 Mb chr21 results are not affected.
 
-### Running the long experiments on GitHub
+The paper draft built from Tiers 1-3 is in [docs/paper/manuscript.md](docs/paper/manuscript.md).
 
-The Tier 3 runs take hours. `.github/workflows/experiment.yml` runs them on a GitHub runner: open the Actions tab, pick **Experiment**, choose a stage (`tier3-e1e2`, `tier3-e4` or `tier3-scaling`) and a branch, and the JSON, TSV and log outputs come back as an artifact. Tier 4 fans out instead: stage `tier4-arm` (input `n` = 6, 20 or 40) or `tier4-hard`, with `pggb` = `p90` or `p98` and a replicate label, runs one job per sample, one per chunk and one per graph, and commits a summary JSON to `docs/tier4_runs/` when the branch is a `claude/` branch. The paper draft built from Tiers 1-3 is in [docs/paper/manuscript.md](docs/paper/manuscript.md).
+## Quick start
 
-### haploblocks.org data and the AWS kit
+### Local demo (synthetic data, no DNAnexus or HPRC data needed)
 
-[data.haploblocks.org](https://data.haploblocks.org) splits each 1000 Genomes chromosome (2,548 samples, 5,096 haplotypes) into blocks between recombination hotspots. The sequences are VCF-derived consensus, so they carry few SVs, but many haplotypes in a block are identical. `pipeline/haploblocks/prepare_block.py --dedupe` keeps one copy of each, which on a 4.6 kb chr22 block cut 5,096 haplotypes to 318 sequences and gave the same graph 3.5-5x faster. Blocks this short need `-s 1000` (`config/haploblocks.yaml`); the default `-s 5000` fails below 5 kb. `aws/` holds an AWS Batch (Spot) stack that runs one block per array task; see [aws/README.md](aws/README.md) for the steps and cost controls.
-
----
-
-## 🏗️ Full Pipeline
-
-A pangenome graph represents the genetic variation across many individuals or haplotypes in a single data structure, rather than forcing every genome to be described as a list of differences from one linear reference sequence. Conventional linear comparisons use references like GRCh38, which collapse human diversity into a single representative path. With this approach, structural variants are often missed or misrepresented in regions of high diversity or repetitiveness. A pangenome graph can encode the divergent portions of a sample genome as alternate paths/nodes, inherently capturing structural variation such as large insertions, deletions, and rearrangements. 
-
-The current standard approach to building these graphs, and the one this project builds on, is PGGB (the PanGenome Graph Builder). PGGB constructs a graph in three main stages: first, it performs all-pairs sequence alignment across the input haplotypes to identify homologous regions; second, it induces a variation graph from those pairwise alignments, collapsing shared sequence into common nodes, and lastly, it smooths and normalizes the graph through partial-order alignment so that regions that are locally linear are represented cleanly, while true structural variation remains visible as bubbles in the graph topology. The result is a single graph, plus a path for each input haplotype through that graph, that can be used for variant calling, alignment, and comparative analysis. The all-pairs alignment step compares every haplotype against every other haplotype, so its cost grows roughly quadratically (O(n²)) as more samples are added to the pangenome. Additional steps of the pipeline, alignment, induction, and smoothing, have to be processed across the full length of the input sequence, so cost also grows with the size of the genomic region being modeled. Thus, computation quickly becomes unwieldy and exceeds runtime and memory constraints of typical compute infrastructure. Our goal is to address the quadratic scaling in computation as sample size and length increases.
-
-Our strategy is to break the monolithic construction problem into smaller, independent problems that can be solved in parallel and then reassembled. To accomplish this, we use minimap2 to identify haplotypes across our individual pangenomic samples. We then partition our samples into chunks that are aligned according to the haplotypes. Then, in parallel, we are able to build separate PGGB graphs for each chunk. We are able to re-stitch these graphs together across overlapping boundaries, assembling into a unified graph. 
-
-To confirm that this parallel-and-stitch approach is actually a valid substitute for the conventional method, we validate the reassembled graph against a monolithic PGGB graph built the standard way over the same interval and haplotypes. Validation checks whether the two graphs agree on topology, whether each haplotype's path is preserved intact and contiguous across chunk boundaries, whether sequence content matches, and whether variant representation is equivalent. For that last point, we call variants from both graphs and compare them using truvari to measure precision, recall, and F1 between the merged-graph callset and the monolithic baseline. As a further, independent check, we generate a linear-reference SV callset for the same haplotypes against GRCh38 using assembly-based calling, giving us a second point of comparison outside the graph-based pipeline entirely. Together, these checks are meant to establish whether parallel construction can match conventional pangenome graph construction in accuracy while avoiding its computational bottleneck.
-
-
-
----
-
-## Methods
-
-For our pilot, we used four haplotype-resolved assemblies from HPRC Release 2 alongside GRCh38, restricted to a 1 Mb interval on chr21 (chr21:20,000,000–21,000,000) chosen as a representative smoke-test region. Because each haplotype assembly has its own independent coordinate system, we first used minimap2 to align each haplotype to GRCh38 and project the target interval's boundaries onto each haplotype's own sequence, filtering low-confidence mappings below a minimum mapping quality of 20 and a minimum query coverage of 0.90; samtools-based interval extraction and a custom multi-FASTA builder then produced the corresponding per-haplotype sequence for the interval. From this shared input, we built two graphs for comparison: a monolithic baseline, produced by running PGGB v0.6.0 once over the full interval across all haplotypes in a Dockerized environment, and a parallel graph, produced by partitioning the same interval into overlapping 400 kb windows (50 kb pairwise overlap) with a custom chunking script, extracting each haplotype's corresponding sub-sequence per chunk under a parent-locus constraint that rejects chunks spanning contig boundaries or ambiguous strand orientation, and running PGGB independently and in parallel on each chunk with identical parameters. Both the local synthetic pipeline and full-scale runs on real HPRC data are orchestrated the same way: a Makefile drives local execution, while a matching set of DNAnexus applets and shell scripts stage inputs and launch the equivalent chunked and baseline jobs on cloud compute for real-data runs.
-
-The independently built chunk graphs are represented and manipulated using a custom GFA data model and parser we implemented in-house, supporting the full GFA1 structure (headers, segments, links, paths, and the official W-line walk format) with round-trip parsing, serialization, and file I/O. Reassembly proceeds in two stages: a namespace-safe disjoint union that concatenates chunk graphs without merging shared content, used as a diagnostic baseline, and an overlap-aware stitching algorithm — the project's core methodological contribution — that identifies each haplotype's common subpath within a chunk-pair's overlap region and welds matching segment IDs across the boundary to produce a single continuous graph, with a boundary report tracking per-haplotype stitch success and base-level identity across each seam. The stitch is implemented and synthetic-validated (`make demo` yields an EQUIVALENT 5-component graph with 2/2 boundaries passing) and validated on HPRC release 2 data: on chr21:20–21 Mb with 5 haplotypes and zero-overlap chunks, every haplotype path matches the monolithic build and truvari F1 against the monolithic callset is about 0.998 (docs/TIER1_CONTROLS.md, docs/TIER2.md). For validation, we run vg deconstruct on both the baseline and reassembled graphs to call variants from each, then compare the two callsets with truvari to obtain precision, recall, and F1; independently, we generate an assembly-based linear-reference SV callset for the same haplotypes against GRCh38 using dipcall, giving us a comparison point outside the graph-based pipeline entirely. The full pipeline is covered by a pytest suite (204 tests spanning the GFA model, chunking, merging, interval mapping, and pipeline orchestration), and results are exported as compact JSON and served through a Next.js/React/TypeScript web dashboard for inspection.
-
-<img src="slides/Screenshot 2026-08-27 at 8.53.22 AM.png" width="800"><br>
-<img src="slides/Screenshot 2026-08-27 at 8.55.52 AM.png" width="800">
-<img src="slides/Screenshot 2026-08-27 at 8.53.46 AM.png" width="800"><br>
-
-Full editable deck: [`methods_slides.pptx`](methods_slides.pptx)
-
----
-
-## Results - Benchmark Figures
-
-<img src="slides/results_1.png" width="800"><br>
-<img src="slides/results_2.png" width="800">
-
-- [Speed comparison](slides/speed_comparison.html) — monolithic vs. chunked, sequential vs. parallel
-- [Speed vs. accuracy](slides/speed_vs_accuracy.html) — F1 against wall time
-- [Scaling by sample count](slides/scaling_by_sample_count.html) — projected, O(N²) model
-- [Scaling by genome length](slides/scaling_by_genome_length.html) — projected, linear fit to real data
-
-## Who Is Doing What?
-
-**Full task breakdown with commands, file paths, and acceptance criteria:**
-👉 **[docs/TASK_BREAKDOWN.md](docs/TASK_BREAKDOWN.md)**
-
-| Person | Primary Area | What They Are Working On |
-|--------|-------------|--------------------------|
-| **Quang** | Pipeline architecture + graph merging | ✅ **Q1–Q3:** overlap-aware stitch, `tests/test_merge.py`, boundary report. `make demo` → Strategy: overlap_aware, EQUIVALENT, 5 components. |
-| **Michael** | Pangenome graph construction | M1: Run real PGGB applet on DNAnexus (micro-test). M2/M3: Build baseline + chunk graphs on DNAnexus. M4: Full 1 Mb smoke test. |
-| **Khoi** | Pipeline + linear/assembly workflow | K1: Dipcall wrapper validation. K2: SVIM-asm wrapper. K3: Truvari variant comparison. K4: Method documentation. |
-| **Ali** | Pipeline + DNAnexus + integration + web | ✅ A1-A5 complete. ✅ A6 (web dataset export) complete. 🔵 **A7-A10 (current):** benchmark display polish, chunk visualization, compare mode, Vercel deploy. |
-| **Alexander** | Documentation + presentation | D1: Update architecture doc. D2: DNAnexus operations guide. D3: Web visualization guide. D4: Final presentation. |
-| **Lex** | PGGB benchmarking | L1: Local PGGB cost benchmarks. L2: Graph cost model. L3: Document findings. L4: Merge into pipeline. |
-
-> **Important:** The pipeline is a shared technical responsibility. Everyone collaboratively implements and troubleshoots.
-
----
-
-## Where Should I Work?
-
-```
-Want to work on PGGB / graph construction?
-  pipeline/baseline/ and pipeline/parallel/  (Michael + Khoi)
-
-Want to work on graph stitching?
-  pipeline/merge/  (Quang + Michael + Khoi + Ali)
-
-Want to work on DNAnexus / cloud execution?
-  dnanexus/  (Ali + Quang + Khoi)
-
-Want to work on benchmarking / validation?
-  pipeline/benchmark/  (Ali + Khoi + Michael)
-
-Want to work on the website / visualization?
-  web/  (Ali + anyone)
-
-Want to work on writing / presentation?
-  docs/  (Alexander)
+```bash
+git clone https://github.com/collaborativebioinformatics/linear-scaling-pangenome-sv.git
+cd linear-scaling-pangenome-sv
+pip install pyyaml pytest
+make check           # Verify your environment
+make demo            # Generate synthetic data, build GFAs, stitch, export web JSON
+make test            # Run 204 tests
+make web             # Start Next.js dev server at http://localhost:3000
 ```
 
----
+To run the full pipeline on real HPRC data, see [DNAnexus](#dnanexus).
 
-## Pipeline Flow
+### Explore the real 1 Mb chr21 benchmark
+
+[web-lemon-zeta-40.vercel.app](https://web-lemon-zeta-40.vercel.app) shows the real HPRC baseline in five tabs:
+
+| Tab | Content |
+|-----|---------|
+| Explore | Interactive Cytoscape graph with color-coded shared/unique DNA |
+| Results | 10,389 nodes, 14,185 edges |
+| Chunks | 3 overlapping 400 Kb chunks |
+| Compare | Compare any two people's DNA |
+| Speed | Complexity scaling chart |
+
+## How it works
+
+### Background
+
+A pangenome graph stores the variation across many haplotypes in one data structure, instead of describing every genome as a list of differences from a single linear reference such as GRCh38. Linear comparisons collapse human diversity into one path, so structural variants are often missed or misrepresented in diverse or repetitive regions. A graph encodes divergent sequence as alternate nodes and paths, which captures large insertions, deletions and rearrangements directly.
+
+This project builds on PGGB (the PanGenome Graph Builder). PGGB runs in three stages. It aligns all input haplotypes against each other to find homologous regions, induces a variation graph from those alignments by collapsing shared sequence into common nodes, and then smooths and normalizes the graph with partial-order alignment, so that locally linear regions are represented cleanly and true structural variation stays visible as bubbles. The output is one graph plus a path for each input haplotype, usable for variant calling, alignment and comparative analysis. The all-pairs alignment grows roughly quadratically (O(n²)) with the number of haplotypes, and alignment, induction and smoothing all run over the full length of the input, so cost also grows with region size. Large builds soon exceed the runtime and memory of typical compute infrastructure. The goal here is to get around that scaling as sample count and region length increase.
+
+### Approach
+
+The monolithic build is split into smaller independent problems that run in parallel and are then reassembled. minimap2 maps the target interval onto each haplotype, the interval is cut into chunks with matching coordinates on every haplotype, PGGB builds a graph for each chunk in parallel, and the chunk graphs are stitched across their boundaries into one graph.
+
+The stitched graph is validated against a monolithic PGGB graph built the standard way over the same interval and haplotypes. The checks cover topology, whether each haplotype path stays intact and contiguous across chunk boundaries, sequence content, and variant representation. For variants, both graphs are called and the callsets compared with truvari (precision, recall, F1). An assembly-based linear-reference SV callset against GRCh38 gives a second comparison point outside the graph pipeline.
+
+### Pipeline flow
 
 ```
 HPRC Release 2 (4 haplotypes + GRCh38)
@@ -175,57 +105,67 @@ HPRC Release 2 (4 haplotypes + GRCh38)
   -> JSON -> web
 ```
 
-**Merge status:** overlap-aware stitch is on main (`pipeline/merge/merge_graphs.py`). `make demo` prints `Strategy: overlap_aware` and an EQUIVALENT 5-component graph. Disjoint union remains as a diagnostic strategy.
+Merge status: the overlap-aware stitch is on main (`pipeline/merge/merge_graphs.py`). `make demo` prints `Strategy: overlap_aware` and an EQUIVALENT 5-component graph. Disjoint union remains as a diagnostic strategy.
 
----
+### Methods (pilot)
 
-## Current State
+The pilot used four haplotype-resolved assemblies from HPRC Release 2 and GRCh38, restricted to a 1 Mb smoke-test interval on chr21 (chr21:20,000,000–21,000,000). Each haplotype assembly has its own coordinate system, so minimap2 first aligns each haplotype to GRCh38 and projects the interval boundaries onto the haplotype's own sequence, dropping mappings below MAPQ 20 or query coverage 0.90. samtools-based interval extraction and a custom multi-FASTA builder then produce the per-haplotype sequence for the interval. From this input two graphs are built. The monolithic baseline runs PGGB v0.6.0 once over the full interval and all haplotypes in Docker. The parallel graph cuts the same interval into overlapping 400 kb windows (50 kb pairwise overlap), extracts each haplotype's sub-sequence per chunk under a parent-locus constraint that rejects chunks spanning contig boundaries or with ambiguous strand orientation, and runs PGGB on each chunk independently with identical parameters. Local synthetic runs and real HPRC runs are orchestrated the same way: a Makefile drives local execution, and a matching set of DNAnexus applets and shell scripts stages inputs and launches the chunked and baseline jobs in the cloud.
 
-| Component | Status | Notes |
-|-----------|--------|-------|
-| GFA data model | ✅ | Header, Segment, Link, Path, Walk (official W-line, no step_count) |
-| GFA parser | ✅ | Parse, dump, roundtrip, file I/O |
-| Chunking | ✅ | Overlapping chunks, configurable pairwise overlap; zero-overlap hotspot chunks (`hotspot_chunks.py`) |
-| Per-haplotype cut projection | ✅ | `project_chunks.py`: chained minimap2 alignment, same cut on every haplotype |
-| Merge (disjoint union) | ✅ | Namespace-safe concatenation, diagnostic only |
-| Overlap-aware stitch | ✅ | `overlap_aware_stitch()`; `make demo` EQUIVALENT, 5 components |
-| Synthetic demo | ✅ | `make demo` generates full vertical slice |
-| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks, Tier 4 manifests and projection — 204 pass |
-| Web explorer | ✅ Interactive | Cytoscape.js graph, sample/haplotype selector, inspector, 4 tabs, real JSON loading |
-| Web dataset export | ✅ | `pipeline/export/build_web_dataset.py` — GFA → bounded compact JSON (no sequences) |
-| Web JSON guard | ✅ | `guard_no_genomic()` blocks GFA/FASTA/VCF/BAM/CRAM; `WEB_MAX_FILE_MB` size guard |
-| DNAnexus applets | ✅ Built | `pggb_chunk` + `pggb_baseline`, instance `mem3_ssd1_v2_x16` |
-| DNAnexus dry-run | ✅ | 3 chunks validated, FATAL checks verified |
-| Graph statistics | ✅ | Full topology, comparison, TSV export |
-| Environment checker | ✅ | Pipeline-tiered: REQUIRED / CONTAINER / WEB_OPTIONAL |
-| Stitch boundary validation | ✅ | `results/merge/boundary_report.tsv`; per-haplotype PASS/FAIL |
-| Equivalence validation | ✅ synthetic / 🟡 independent chunks | `make demo` EQUIVALENT; 1 Mb HPRC windowed stitch EQUIVALENT; independent chunk PGGB still M3 |
-| Variant comparison | 🟡 NOT_RUN | Requires K1-K3 first |
----
+Chunk graphs are handled with an in-house GFA data model and parser that supports the full GFA1 structure (headers, segments, links, paths, and the official W-line walk format) with round-trip parsing, serialization and file I/O. Reassembly has two strategies. A namespace-safe disjoint union concatenates chunk graphs without merging shared content and serves as a diagnostic baseline. The overlap-aware stitch, the project's core methodological contribution, finds each haplotype's common subpath in a chunk pair's overlap and welds matching segment IDs across the boundary into one continuous graph; a boundary report records per-haplotype stitch success and base-level identity at each seam. On synthetic data, `make demo` yields an EQUIVALENT 5-component graph with 2/2 boundaries passing. On HPRC release 2 data (chr21:20–21 Mb, 5 haplotypes, zero-overlap chunks), every haplotype path matches the monolithic build and truvari F1 against the monolithic callset is about 0.998 ([Tier 1](docs/TIER1_CONTROLS.md), [Tier 2](docs/TIER2.md)). Variants are called from both graphs with vg deconstruct and compared with truvari; the linear-reference SV callset for the same haplotypes is made with dipcall. A pytest suite (204 tests spanning the GFA model, chunking, merging, interval mapping and pipeline orchestration) covers the pipeline, and results are exported as compact JSON for a Next.js/React/TypeScript dashboard.
 
-## Quick Start
+<img src="slides/Screenshot 2026-08-27 at 8.53.22 AM.png" width="800"><br>
+<img src="slides/Screenshot 2026-08-27 at 8.55.52 AM.png" width="800">
+<img src="slides/Screenshot 2026-08-27 at 8.53.46 AM.png" width="800"><br>
 
-### Local (synthetic demo)
-```bash
-make check      # Check environment
-make demo       # Generate synthetic data, build GFAs, merge, export JSON
-make test       # Run 204 tests
-make web        # Start Next.js dev server at http://localhost:3000
-```
+Full editable deck: [`slides/methods_results_slide.pptx`](slides/methods_results_slide.pptx)
 
-### DNAnexus (real HPRC data)
-```bash
-# Inside DNAnexus Cloud Workstation:
-cd ~/pangenome-parallel
-git pull origin main
-bash dnanexus/setup_workstation.sh   # One-time setup
-bash dnanexus/run_pipeline.sh --upload  # Full pipeline
-```
+## Experiments and reproducibility
 
-## Web Explorer
+### Where each experiment lives
 
-The web explorer is a Next.js + React + TypeScript app using Cytoscape.js for
-interactive graph rendering.
+| Step | Write-up | Scripts | Raw results |
+|------|----------|---------|-------------|
+| Pilot | [docs/RECOMBINATION_CHUNKS.md](docs/RECOMBINATION_CHUNKS.md) | `pipeline/parallel/hotspot_chunks.py`, `pipeline/prepare/project_chunks.py`, `pipeline/benchmark/compare_chunking.py` | [docs/recombination_chunks_comparison.json](docs/recombination_chunks_comparison.json) |
+| Tier 1 | [docs/TIER1_CONTROLS.md](docs/TIER1_CONTROLS.md) | `pipeline/benchmark/run_tier1_controls.sh`, `pipeline/benchmark/seam_metrics.py` | [docs/tier1_controls.json](docs/tier1_controls.json) |
+| Tier 2 | [docs/TIER2.md](docs/TIER2.md) | [pipeline/benchmark/tier2/](pipeline/benchmark/tier2/) | [docs/tier2.json](docs/tier2.json) |
+| Tier 3 | [docs/TIER3.md](docs/TIER3.md) | [pipeline/benchmark/tier3/](pipeline/benchmark/tier3/) | [docs/tier3.json](docs/tier3.json), `docs/tier3_path_revisits_*.tsv` |
+| Tier 4 | [docs/TIER4.md](docs/TIER4.md) | [pipeline/benchmark/tier4/](pipeline/benchmark/tier4/) | [docs/tier4_runs/](docs/tier4_runs/) |
+
+Each write-up lists the commands it was run with.
+
+### Pilot benchmark on DNAnexus (Aug 28 2026)
+
+| Metric | Value |
+|--------|-------|
+| Region | GRCh38 chr21:20,000,000–21,000,000 (1,000,000 bp) |
+| Haplotypes | 5 (GRCh38 + HG00673/733 paternal+maternal) |
+| Baseline nodes | 10,389 |
+| Baseline edges | 14,185 |
+| Baseline wall time | 327s (5.5 min) on `mem3_ssd1_v2_x16` |
+| Parallel wall time | 272s (4.5 min), 1.20× speedup |
+| PGGB | v0.6.0, pinned `sha256:44f3563c`, -K 19, -k 29 |
+| Chunk status | ✅ Rebuilt Nov 2026 with zero-overlap chunks projected onto every haplotype ([Tier 1](docs/TIER1_CONTROLS.md)) |
+| Stitch / Truvari | ✅ Every haplotype path identical to the monolithic build; truvari F1 ≈ 0.998 vs monolithic ([Tier 1](docs/TIER1_CONTROLS.md), [Tier 2](docs/TIER2.md)) |
+
+<img src="slides/results_1.png" width="800"><br>
+<img src="slides/results_2.png" width="800">
+
+- [Speed comparison](slides/speed_comparison.html): monolithic vs. chunked, sequential vs. parallel
+- [Speed vs. accuracy](slides/speed_vs_accuracy.html): F1 against wall time
+- [Scaling by sample count](slides/scaling_by_sample_count.html): projected, O(N²) model
+- [Scaling by genome length](slides/scaling_by_genome_length.html): projected, linear fit to real data
+
+### Running the long experiments on GitHub
+
+The Tier 3 runs take hours. `.github/workflows/experiment.yml` runs them on a GitHub runner: open the Actions tab, pick **Experiment**, choose a stage (`tier3-e1e2`, `tier3-e4` or `tier3-scaling`) and a branch, and the JSON, TSV and log outputs come back as an artifact. Tier 4 fans out instead: stage `tier4-arm` (input `n` = 6, 20 or 40) or `tier4-hard`, with `pggb` = `p90` or `p98` and a replicate label, runs one job per sample, one per chunk and one per graph, and commits a summary JSON to `docs/tier4_runs/` when the branch is a `claude/` branch.
+
+### haploblocks.org data and the AWS kit
+
+[data.haploblocks.org](https://data.haploblocks.org) splits each 1000 Genomes chromosome (2,548 samples, 5,096 haplotypes) into blocks between recombination hotspots. The sequences are VCF-derived consensus, so they carry few SVs, but many haplotypes in a block are identical. `pipeline/haploblocks/prepare_block.py --dedupe` keeps one copy of each, which on a 4.6 kb chr22 block cut 5,096 haplotypes to 318 sequences and gave the same graph 3.5-5x faster. Blocks this short need `-s 1000` (`config/haploblocks.yaml`); the default `-s 5000` fails below 5 kb. `aws/` holds an AWS Batch (Spot) stack that runs one block per array task; see [aws/README.md](aws/README.md) for the steps and cost controls.
+
+## Web explorer
+
+The web explorer is a Next.js + React + TypeScript app that renders graphs with Cytoscape.js.
 
 ```bash
 cd web
@@ -252,18 +192,13 @@ web/public/data/
 Next.js + Cytoscape.js explorer
 ```
 
-- `manifest.json` — sample/haplotype discovery, pipeline status, graph metrics.
-- `overview.json` — chunk coordinate windows.
-- `graphs/<graph>/<sample>_<hap>.json` — bounded per-haplotype subgraph
-  (selected path + one-hop branches). Node ids, lengths, degree, and
-  path/reference membership only — **no nucleotide sequences**.
+- `manifest.json`: sample/haplotype discovery, pipeline status, graph metrics.
+- `overview.json`: chunk coordinate windows.
+- `graphs/<graph>/<sample>_<hap>.json`: bounded per-haplotype subgraph (selected path + one-hop branches). It holds node ids, lengths, degree, and path/reference membership only, with no nucleotide sequences.
 
 ### Sample selection
 
-Select a sample (GRCh38, HG00673, HG00733) and haplotype
-(reference / paternal / maternal). Each selection lazy-loads only its compact
-JSON. The explorer supports graph selection (Baseline vs Merged), zoom/pan,
-fit/reset, node search, node/edge inspector, and reference/branch highlighting.
+Select a sample (GRCh38, HG00673, HG00733) and haplotype (reference / paternal / maternal). Each selection lazy-loads only its compact JSON. The explorer supports graph selection (Baseline vs Merged), zoom/pan, fit/reset, node search, a node/edge inspector, and reference/branch highlighting.
 
 ### Deploy
 
@@ -272,8 +207,7 @@ cd web
 npx vercel --prod
 ```
 
-Only static compact JSON is served; no DNAnexus credentials or raw genomics
-files ever reach the browser.
+Only static compact JSON is served; no DNAnexus credentials or raw genomics files reach the browser.
 
 ## Configuration
 
@@ -289,148 +223,101 @@ files ever reach the browser.
 | pggb.params.transclose_batch | config/pipeline.yaml | 100000000 | seqwish `-B`; must exceed the total input bp (see docs/TIER2.md) |
 | pggb.params.segment_length | config/haploblocks.yaml | 1000 | `-s` for haploblocks.org blocks, which can be under 5 kb |
 
-## What To Do Next (Pre-Submission)
+## DNAnexus
 
-All 19 P0 audit items are fixed. Below is the exact pre-submission task list broken down per person. Stitch is implemented. Independent per-chunk PGGB on DNAnexus (`/data/prepared/chunks/*.fa`) is unblocked.
+Real HPRC runs use two applets, `pggb_chunk` and `pggb_baseline`, on instance type `mem3_ssd1_v2_x16`. Operations details are in [docs/DNANEXUS.md](docs/DNANEXUS.md).
 
-### Quang — Merge Algorithm (P0, highest priority)
-
-Stitch is the single critical unimplemented component.
-
-| # | Task | Area | Instructions |
-|---|------|------|-------------|
-| Q1 | **Overlap-aware stitch** | `pipeline/merge/merge_graphs.py` | **DONE.** `overlap_aware_stitch()`; `make demo` writes `results/merge/merged.gfa`. |
-| Q2 | **Stitch tests** | `tests/test_merge.py` | **DONE.** Path continuity, sequence identity, no invented gap edges, demo EQUIVALENT. |
-| Q3 | **Boundary report** | `pipeline/merge/validate_merge.py` | **DONE.** Per-haplotype PASS/FAIL + `results/merge/boundary_report.tsv`. |
-
-### Michael — PGGB + Graph Validation (P0)
-
-| # | Task | Area | Instructions |
-|---|------|------|-------------|
-| M1 | **PGGB version validation** | `config/pipeline.yaml` | Verify the pinned image digest matches actual `v0.6.0` tag on ghcr.io. Update if mismatch. |
-| M2 | **Chunk FASTA review** | `pipeline/parallel/build_all_chunks.py` | Review parent-locus constraint (lines 180-202): contig FATAL, strand warning, margin calc. |
-| M3 | **Baseline graph review** | `pipeline/baseline/build_baseline.sh` | Confirm `-w 50000` used by both baseline and chunks. Verify command matches manual pggb invocation. |
-| M4 | **Test data creation** | `tests/` | Create a small (5 Kb) test FASTA with 2-3 haplotypes for stitch testing without real HPRC data. |
-
-### Khoi — Linear Pipeline + Validation (P0/P1)
-
-| # | Task | Area | Instructions |
-|---|------|------|-------------|
-| K1 | **Linear dipcall wrapper** | `pipeline/linear/run_dipcall.sh` | Download/verify dipcall, run on 4 HPRC haplotypes vs GRCh38 chr21, produce VCF. Needed for benchmark. |
-| K2 | **Variant comparison** | `pipeline/benchmark/benchmark_variants.sh` | `vg deconstruct` on baseline + merged GFAs, `truvari` compare baseline vs merged VCF. Record precision/recall/F1. |
-| K3 | **Benchmark audit** | `pipeline/benchmark/benchmark_variants.sh` | Fix existing stub. Wire results into `results/benchmark/`. |
-| K4 | **Real data smoke test** | — | Once stitch ready (Q1), run full pipeline on chr21:20000000-21000000. Report baseline/chunks/stitch/equivalence status. |
-
-### Ali — DNAnexus + Integration + Web (P0/P1)
-
-| # | Task | Area | Instructions |
-|---|------|------|-------------|
-| A1 | **Baseline applet test** | `dnanexus/applets/pggb_baseline/` | Build: `dx build --brief`. Verify same instance type as chunk (`mem3_ssd1_v2_x16`). |
-| A2 | **Orchestration dry run** | `dnanexus/run_parallel_chunks.sh` | Verify expected=local=uploaded=submitted=downloaded. Simulate missing FASTA, verify FATAL. |
-| A3 | **Timing dashboard** | `dnanexus/run_parallel_chunks.sh` | Review `graph_parallel_wall_seconds` (max stop - min start) and `sum_worker_seconds`. |
-| A4 | **Web stitch status** | `web/app/page.tsx` | Reads `latest.json` stitch/equivalence badges (`PASS` / `EQUIVALENT` after `make demo`). |
-| A5 | **Web JSON guard** | `scripts/sync_web_results.py` | Prevent accidental GFA copy into `web/public/data/`. Only compact JSON allowed. |
-
-### Alexander — Documentation + Presentation (P0)
-
-| # | Task | Area | Instructions |
-|---|------|------|-------------|
-| D1 | **Architecture diagram** | `docs/ARCHITECTURE.md` | Draw pipeline architecture (ASCII/Mermaid). Mark merge as SYNTHETIC_VALIDATED, equivalence NOT_RUN. |
-| D2 | **Methods summary** | `docs/` | 1-2 pages: parallelization strategy, parent-locus constraint, provenance hashing, benchmark design. |
-| D3 | **Presentation slides** | `docs/presentation/` | Research question, architecture, status, timeline, next steps. |
-| D4 | **README review** | `README.md` | Verify "Who Is Doing What" table. Read for clarity. |
-
-### Shared — Critical Path
-
-| # | Task | Who | Instructions |
-|---|------|-----|-------------|
-| S1 | **Integration test** | Quang + Michael + Ali | **Quang part done:** `make demo` → Strategy: overlap_aware, 5 components, EQUIVALENT. |
-| S2 | **Final validation** | Everyone | `make check && make test` from clean checkout. All 55+ tests pass. CI on the merge commit. |
-| S3 | **Tag release** | Ali | Squash-merge working branch to main. Tag `v0.1.0-pre`. Do NOT launch real PGGB. |
-
-### Timeline
-
-```
-Now ___ Q1 (stitch: 1-2d) ___ S1 (integration: 1d) ___ S2 (validation: 1d) ___ Submission
-        M1-M4, A1-A5 (parallel)   D1-D4 (parallel)        K1-K4 (parallel)
+```bash
+# Inside DNAnexus Cloud Workstation:
+cd ~/pangenome-parallel
+git pull origin main
+bash dnanexus/setup_workstation.sh   # One-time setup
+bash dnanexus/run_pipeline.sh --upload  # Full pipeline
 ```
 
-### Stitch Algorithm Reference (for Q1)
-
-1. **Input:** Two adjacent chunk GFAs with known overlap region from `chunk_manifest.tsv`.
-2. **Find common subpaths:** Extract each haplotype's path segment covering the overlap.
-3. **Create weld mapping:** Map segment IDs from chunk_B's overlap to chunk_A's by sequence identity.
-4. **Merge nodes:** Replace chunk_B IDs with chunk_A IDs in links/paths. Drop duplicate segments.
-5. **Concatenate remaining:** Keep both graphs' content outside the overlap.
-6. **Validate:** For every haplotype, verify path continuity and sequence identity to monolithic baseline.
-
-Start with exact-match welding before attempting alignment-based welding for near-matches.
-
-### Submission Checklist
-
-```
-☑ Q1: Stitch implemented and tested
-☑ Q2: Stitch tests pass
-☑ Q3: Boundary report
-☐ M1: PGGB version verified
-☐ K1: Dipcall wrapper complete
-☐ K2: Variant comparison working
-☑ A1-A5: DNAnexus + web updates done
-☑ A6: Web dataset export (build_web_dataset.py)
-☐ A7-A10: benchmark display, chunk viz, compare mode, Vercel deploy
-☐ D1-D4: Documentation complete
-☐ S1: Full integration test passes
-☐ S2: All 55+ tests pass on CI
-☐ S3: Tagged v0.1.0-pre
-```
-
-## Repository Structure
+## Repository structure
 
 ```
 pangenome-parallel/
 |-- config/               # Pipeline configuration (YAML)
-|-- dnanexus/applets/pggb_chunk/  # PGGB applet for parallel chunks
-|-- dnanexus/applets/pggb_baseline/  # PGGB applet for baseline
-|-- dnanexus/run_pipeline.sh      # Master orchestrator
-|-- dnanexus/run_parallel_chunks.sh  # Launch chunk jobs on DNAnexus
-|-- dnanexus/stage_inputs.sh      # Stage HPRC assemblies from storage
-|-- dnanexus/setup_workstation.sh  # Bootstrap Cloud Workstation
-|-- pipeline/merge/gfa.py         # GFA data model (core library)
-|-- pipeline/merge/merge_graphs.py  # Merge strategies
+|-- pipeline/prepare/faidx_utils.py  # samtools interval extraction
+|-- pipeline/prepare/map_chromosome.py  # minimap2 interval mapping
+|-- pipeline/prepare/prepare_sequences.py  # Multi-FASTA builder
+|-- pipeline/prepare/project_chunks.py  # Project reference cuts onto each haplotype
 |-- pipeline/parallel/make_chunks.py  # Overlapping chunk creation
 |-- pipeline/parallel/build_all_chunks.py  # Chunk FASTA builder
 |-- pipeline/parallel/hotspot_chunks.py  # Zero-overlap chunks cut at recombination hotspots
-|-- pipeline/prepare/project_chunks.py  # Project reference cuts onto each haplotype
-|-- pipeline/haploblocks/prepare_block.py  # haploblocks.org block -> PanSN FASTA, optional dedupe
+|-- pipeline/baseline/build_baseline.sh  # Monolithic PGGB via Docker
+|-- pipeline/merge/gfa.py         # GFA data model (core library)
+|-- pipeline/merge/merge_graphs.py  # Merge strategies
+|-- pipeline/benchmark/           # Stats, path compare, reports
 |-- pipeline/benchmark/compare_chunking.py  # Monolithic vs chunked: topology, paths, variants
 |-- pipeline/benchmark/seam_metrics.py  # Extra sequence and errors by distance to a cut
 |-- pipeline/benchmark/tier2/      # Tier 2 scaling, hard-region and map scripts
 |-- pipeline/benchmark/tier3/      # Tier 3 truth set, scoring, SD groups, 10 Mb and replicate scripts
 |-- pipeline/benchmark/tier4/      # Tier 4 chr21 arm and HG002/GIAB kit: manifests, projection, fan-out build and scoring
-|-- docs/tier4_runs/               # One JSON per Tier 4 GitHub run, committed by the workflow
-|-- .github/workflows/experiment.yml  # Long benchmark runs on a GitHub runner (manual dispatch)
-|-- aws/                          # AWS Batch kit for haploblocks.org blocks
-|-- pipeline/baseline/build_baseline.sh  # Monolithic PGGB via Docker
-|-- pipeline/prepare/faidx_utils.py  # samtools interval extraction
-|-- pipeline/prepare/map_chromosome.py  # minimap2 interval mapping
-|-- pipeline/prepare/prepare_sequences.py  # Multi-FASTA builder
-|-- pipeline/benchmark/           # Stats, path compare, reports
 |-- pipeline/export/build_web_dataset.py  # GFA -> bounded web JSON (A6)
+|-- pipeline/haploblocks/prepare_block.py  # haploblocks.org block -> PanSN FASTA, optional dedupe
 |-- scripts/run_pggb.py           # Canonical PGGB runner (reads config)
 |-- scripts/fetch_hprc_index.py  # Official HPRC Release 2 index
 |-- scripts/download_hprc.py     # Download with gzip validation
 |-- scripts/prepare_reference.sh  # GRCh38 chr21 from DNAnexus/NCBI
 |-- scripts/setup_demo.py        # Synthetic end-to-end demo
 |-- scripts/check_environment.sh  # Tiered environment checker
-|-- tests/                       # 204 tests, pytest
+|-- .github/workflows/experiment.yml  # Long benchmark runs on a GitHub runner (manual dispatch)
+|-- dnanexus/applets/pggb_chunk/  # PGGB applet for parallel chunks
+|-- dnanexus/applets/pggb_baseline/  # PGGB applet for baseline
+|-- dnanexus/run_pipeline.sh      # Master orchestrator
+|-- dnanexus/run_parallel_chunks.sh  # Launch chunk jobs on DNAnexus
+|-- dnanexus/stage_inputs.sh      # Stage HPRC assemblies from storage
+|-- dnanexus/setup_workstation.sh  # Bootstrap Cloud Workstation
+|-- aws/                          # AWS Batch kit for haploblocks.org blocks
 |-- web/                         # Next.js + React + TypeScript
 |-- docs/                        # Architecture, methods, DNAnexus, chunking experiments
+|-- docs/tier4_runs/               # One JSON per Tier 4 GitHub run, committed by the workflow
+|-- tests/                       # 204 tests, pytest
 ```
+
+## Current state
+
+`python3 -m pytest -q` reports 204 passed.
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| GFA data model | ✅ | Header, Segment, Link, Path, Walk (official W-line, no step_count) |
+| GFA parser | ✅ | Parse, dump, roundtrip, file I/O |
+| Chunking | ✅ | Overlapping chunks, configurable pairwise overlap; zero-overlap hotspot chunks (`hotspot_chunks.py`) |
+| Per-haplotype cut projection | ✅ | `project_chunks.py`: chained minimap2 alignment, same cut on every haplotype |
+| Merge (disjoint union) | ✅ | Namespace-safe concatenation, diagnostic only |
+| Overlap-aware stitch | ✅ | `overlap_aware_stitch()`; `make demo` EQUIVALENT, 5 components |
+| Synthetic demo | ✅ | `make demo` generates full vertical slice |
+| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks, Tier 4 manifests and projection; 204 pass |
+| Web explorer | ✅ Interactive | Cytoscape.js graph, sample/haplotype selector, inspector, 4 tabs, real JSON loading |
+| Web dataset export | ✅ | `pipeline/export/build_web_dataset.py`: GFA → bounded compact JSON (no sequences) |
+| Web JSON guard | ✅ | `guard_no_genomic()` blocks GFA/FASTA/VCF/BAM/CRAM; `WEB_MAX_FILE_MB` size guard |
+| DNAnexus applets | ✅ Built | `pggb_chunk` + `pggb_baseline`, instance `mem3_ssd1_v2_x16` |
+| DNAnexus dry-run | ✅ | 3 chunks validated, FATAL checks verified |
+| Graph statistics | ✅ | Full topology, comparison, TSV export |
+| Environment checker | ✅ | Pipeline-tiered: REQUIRED / CONTAINER / WEB_OPTIONAL |
+| Stitch boundary validation | ✅ | `results/merge/boundary_report.tsv`; per-haplotype PASS/FAIL |
+| Equivalence validation | ✅ | `make demo` EQUIVALENT; 1 Mb HPRC windowed stitch EQUIVALENT; independent zero-overlap chunk builds on HPRC chr21:20-21 Mb keep every haplotype path identical to monolithic ([Tier 1](docs/TIER1_CONTROLS.md)) |
+| Variant comparison | ✅ | `vg deconstruct` + truvari; F1 ≈ 0.998 vs monolithic ([Tier 1](docs/TIER1_CONTROLS.md), [Tier 2](docs/TIER2.md)); truth-set scoring in [Tier 3](docs/TIER3.md) and [Tier 4](docs/TIER4.md) |
+
+## Team
+
+| Person | Primary area |
+|--------|-------------|
+| Nhat Quang Tran | Pipeline architecture + graph merging |
+| Michael Olufemi | Pangenome graph construction |
+| Dang Khoi Vu | Pipeline + linear/assembly workflow |
+| Ali Rizvi | Pipeline + DNAnexus + integration + web |
+| Alexander W. Lehr | Documentation + presentation |
+| Lex | PGGB benchmarking |
+
+Paper authors, in order: Nhat Quang Tran, Dang Khoi Vu, Michael Olufemi, Alexander W. Lehr, Ali Rizvi ([docs/paper/manuscript.md](docs/paper/manuscript.md)). The pipeline is a shared technical responsibility; everyone implements and troubleshoots it. The original hackathon task plan (who did what, pre-submission tasks, timeline, stitch algorithm notes and submission checklist) is kept in [docs/HACKATHON_PLAN.md](docs/HACKATHON_PLAN.md), with the full task breakdown in [docs/TASK_BREAKDOWN.md](docs/TASK_BREAKDOWN.md).
 
 ## License
 
-MIT — see [LICENSE](LICENSE)
-
-## Repository
+MIT, see [LICENSE](LICENSE).
 
 GitHub: https://github.com/collaborativebioinformatics/linear-scaling-pangenome-sv
