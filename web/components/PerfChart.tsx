@@ -29,35 +29,20 @@ export default function PerfChart() {
       const pw = W - pad.left - pad.right;
       const ph = H - pad.top - pad.bottom;
 
-      const maxMb = 100;
-      const xLabels = [0, 10, 25, 50, 100]; // 1 and 5 Mb collided with 0; the 5 Mb limit has its own marker
+      // Measured, not modelled: monolithic wall time against the longest chunk (chunks run in parallel).
+      // 1 Mb: chr21:20-21 Mb, 5 haplotypes, median of 3 runs, 3 zero-overlap chunks (docs/TIER1_CONTROLS.md).
+      // 10 Mb: chr21:20-30 Mb, 5 haplotypes, 10 x 1 Mb chunks (docs/TIER3.md, E4).
+      // 31 Mb: chr21:15-46 Mb, 6 haplotypes, 29 hotspot chunks of ~1 Mb, GitHub runner (docs/TIER4.md, E6).
+      const maxMb = 35;
+      const xLabels = [1, 10, 20, 31];
       const xToPx = (mb: number) => pad.left + (mb / maxMb) * pw;
 
-      const maxTimeS = 360000;
+      const maxTimeS = 10000;
       const yLogMax = Math.log10(maxTimeS);
       const yToPx = (t: number) => pad.top + ph - ((Math.log10(Math.max(t, 1)) / yLogMax) * ph);
 
-      // Baseline: O(L) linear, hits ~5Mb memory wall
-      const baselineTimes: [number, number][] = [];
-      for (let mb = 0.1; mb <= 100; mb *= 1.15) {
-        const t = mb <= 5 ? mb * 100 : Infinity;
-        if (t <= 500000) baselineTimes.push([mb, t]);
-      }
-      baselineTimes.push([5.5, 550]);
-      baselineTimes.push([6, 600]);
-
-      // Stitched: O(L/k) wall time, k chunks of ~400Kb
-      const stitchedTimes: [number, number][] = [];
-      const chunkSizeKb = 400;
-      const timePerKb = 0.25;
-      const stitchOverhead = 5;
-      for (let mb = 0.1; mb <= 100; mb *= 1.15) {
-        const kb = mb * 1000;
-        const numChunks = Math.max(1, Math.ceil(kb / chunkSizeKb));
-        const perChunkTime = timePerKb * chunkSizeKb;
-        const wallTime = perChunkTime + stitchOverhead + (numChunks > 1 ? 10 : 0);
-        stitchedTimes.push([mb, wallTime]);
-      }
+      const baselineTimes: [number, number][] = [[1, 122], [10, 582], [31, 2928]];
+      const stitchedTimes: [number, number][] = [[1, 78], [10, 109], [31, 204]];
 
       // Canvas background
       ctx.fillStyle = col.paper;
@@ -66,8 +51,8 @@ export default function PerfChart() {
       // Grid
       ctx.strokeStyle = col.grid;
       ctx.lineWidth = 1;
-      for (let pow = 0; pow <= 5; pow++) {
-        const t = Math.pow(10, pow);
+      // Gridlines at round clock times so the labels are exact.
+      for (const [t, label] of [[1, "1 s"], [10, "10 s"], [60, "1 min"], [600, "10 min"], [3600, "1 h"]] as [number, string][]) {
         const y = yToPx(t);
         ctx.beginPath();
         ctx.moveTo(pad.left, y);
@@ -77,9 +62,6 @@ export default function PerfChart() {
         ctx.fillStyle = col.muted;
         ctx.font = "12px " + FONT;
         ctx.textAlign = "right";
-        const label = t >= 3600 ? `${(t / 3600).toFixed(0)}h`
-          : t >= 60 ? `${(t / 60).toFixed(0)}min`
-          : `${t.toFixed(0)}s`;
         ctx.fillText(label, pad.left - 8, y + 4);
       }
 
@@ -140,59 +122,55 @@ export default function PerfChart() {
         ctx.restore();
       };
 
-      // Baseline line (red, slopes up then hits wall)
+      // Monolithic wall time
       drawLine(baselineTimes, col.baseline, [], 2.5);
 
       // Stitched line (green, near-flat)
       drawLine(stitchedTimes, col.stitched, [], 2.5);
 
-      // OOM cliff vertical marker at ~5Mb
-      ctx.strokeStyle = col.baseline;
-      ctx.globalAlpha = 0.45;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 5]);
-      const wallX = xToPx(5);
-      ctx.beginPath();
-      ctx.moveTo(wallX, pad.top);
-      ctx.lineTo(wallX, pad.top + ph);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = col.baseline;
-      ctx.font = "12px " + FONT;
-      ctx.textAlign = "center";
+      // Point markers, so three measurements never read as a modelled curve
+      for (const [pts, color] of [[baselineTimes, col.baseline], [stitchedTimes, col.stitched]] as [[number, number][], string][]) {
+        ctx.fillStyle = color;
+        for (const [mb, t] of pts) {
+          ctx.beginPath();
+          ctx.arc(xToPx(mb), yToPx(t), 4.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
       ctx.textAlign = "left";
-      ctx.fillText("single-machine", wallX + 6, pad.top + ph - 20);
-      ctx.fillText("memory limit ~5 Mb", wallX + 6, pad.top + ph - 6);
+      ctx.fillStyle = col.baseline;
 
       // Name the baseline line directly so the two series never rely on colour alone.
       const last = baselineTimes[baselineTimes.length - 1];
       ctx.font = "bold 13px " + FONT;
-      ctx.fillText("Baseline", xToPx(last[0]) + 8, yToPx(last[1]) + 4);
+      ctx.fillText("Monolithic", xToPx(last[0]) - 92, yToPx(last[1]) - 10);
+      const lastS = stitchedTimes[stitchedTimes.length - 1];
+      ctx.fillStyle = col.stitchedInk;
+      ctx.fillText("Longest chunk", xToPx(lastS[0]) - 110, yToPx(lastS[1]) + 22);
 
       // Speedup callout
-      const callX = xToPx(50);
-      const callY = yToPx(stitchedTimes[stitchedTimes.length - 1][1]) - 60;
+      const callX = xToPx(12);
+      const callY = yToPx(12); // empty band below both series
       ctx.fillStyle = col.tint;
       ctx.beginPath();
-      ctx.roundRect(callX - 60, callY - 10, 230, 34, 6);
+      ctx.roundRect(callX - 10, callY - 10, 300, 34, 6);
       ctx.fill();
       ctx.fillStyle = col.stitchedInk;
       ctx.font = "bold 13px " + FONT;
-      ctx.textAlign = "center";
-      ctx.fillText("Stitched: near-constant wall time", callX + 55, callY + 6);
-      ctx.fillText("regardless of region size", callX + 55, callY + 24);
+      ctx.textAlign = "left";
+      ctx.fillText("Chunks in parallel finish 1.6x, 5.3x and 14x", callX, callY + 6);
+      ctx.fillText("sooner at 1, 10 and 31 Mb", callX, callY + 24);
 
       // Title
       ctx.fillStyle = col.ink;
       ctx.font = "bold 15px " + FONT;
       ctx.textAlign = "center";
-      ctx.fillText("Time Complexity: Baseline vs Parallel Stitched", W / 2, pad.top - 8);
+      ctx.fillText("Wall time: monolithic build vs longest chunk (measured)", W / 2, pad.top - 8);
 
       ctx.fillStyle = col.muted;
       ctx.font = "11px " + FONT;
       ctx.fillText(
-        "5 haplotypes, PGGB v0.6.0, all-pairs alignment O(n\u00b2\u00d7L) \u2192 O(L) for n=5, modelled with 400 Kb chunks",
+        "PGGB commit 4225c6c (pinned image), chr21; 5 haplotypes at 1 and 10 Mb, 6 at 31 Mb. At 20 haplotypes the 31 Mb monolithic build ran out of 16 GB",
         W / 2, H - 8
       );
     }
@@ -201,7 +179,7 @@ export default function PerfChart() {
 
   return (
     <canvas ref={canvasRef} role="img"
-      aria-label="Wall time versus region size on a log scale: baseline grows linearly up to a single-machine memory limit near 5 Mb; stitched stays near-constant."
+      aria-label="Measured wall time on a log scale at 1, 10 and 31 Mb of chr21: the monolithic build takes 122 s, 582 s and 2,928 s; the longest chunk takes 78 s, 109 s and 204 s."
       style={{ display: "block" }} />
   );
 }

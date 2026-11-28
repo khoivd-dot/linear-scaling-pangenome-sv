@@ -384,35 +384,37 @@ export default function Home() {
     <section className="section">
       <h2>Performance scaling</h2>
       <p className="section-lede">
-        Why does the parallel approach matter? Here&apos;s how wall time grows with region size.
+        How long a monolithic build takes against the longest chunk of the same region, measured at three sizes.
       </p>
       <div className="chart-frame">
         <PerfChart />
       </div>
       <div className="perf-wrap">
         <div className="card">
-          <h3>Why this matters</h3>
+          <h3>Measured cost</h3>
           <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
-                  <th scope="col"><span className="sr-only">Property</span></th>
-                  <th scope="col" className="c-baseline">Baseline</th>
-                  <th scope="col" className="c-stitched">Stitched</th>
+                  <th scope="col">Region (chr21)</th>
+                  <th scope="col" className="c-baseline">Monolithic</th>
+                  <th scope="col" className="c-stitched">Chunked (longest chunk)</th>
                 </tr>
               </thead>
               <tbody>
-                <tr><th scope="row">Complexity</th><td>O(L) — linear in region size</td><td>O(L/k) → O(1) with chunks</td></tr>
-                <tr><th scope="row">Scaling</th><td>Linear growth</td><td>Near-constant wall time</td></tr>
-                <tr><th scope="row">Memory</th><td>Hits limit ~5 Mb per machine</td><td>Unlimited — each chunk fits in RAM</td></tr>
-                <tr><th scope="row">10 Mb region</th><td className="c-baseline">~1,000s (exceeds memory)</td><td className="c-stitched">~115s (25 parallel chunks)</td></tr>
+                <tr><th scope="row">1 Mb, 5 haplotypes</th><td>122 s, about 970 MB</td><td>78 s, about 970 MB; 1.3x the CPU</td></tr>
+                <tr><th scope="row">10 Mb, 5 haplotypes</th><td>582 s, 2.8 GB</td><td>109 s, 971 MB; 1.22x the CPU</td></tr>
+                <tr><th scope="row">31 Mb, 6 haplotypes</th><td>48.8 min, 12.1 GB</td><td>3.4 min, 0.97 GB; 1.05x the CPU</td></tr>
+                <tr><th scope="row">31 Mb, 20 haplotypes</th><td className="c-baseline">ran out of 16 GB</td><td className="c-stitched">8.2 min, 1.5 GB</td></tr>
               </tbody>
             </table>
           </div>
         </div>
-        <div className="callout-warn" style={{ marginTop: 12 }}>
-          <strong>NOTE:</strong> These are theoretical estimates based on PGGB&apos;s O(n²×L) all-pairs alignment with n=5 haplotypes. Measured CPU, wall time and memory at 40 haplotypes are in Findings (Tier 2).
-        </div>
+        <p className="section-lede" style={{ marginTop: 12 }}>
+          Chunks run on separate workers, so wall time is set by the longest chunk. Sources:
+          TIER1_CONTROLS.md (1 Mb, median of 3 runs), TIER3.md E4 (10 Mb, 1 Mb chunks) and TIER4.md E6
+          (31 Mb, 29 hotspot chunks on GitHub runners) in the repository&apos;s docs folder.
+        </p>
       </div>
     </section>
   );
@@ -423,7 +425,7 @@ export default function Home() {
     { key: "findings", label: "Findings", hint: "what the experiments found" },
     { key: "chunks", label: "Chunks", hint: "the parallel pieces" },
     { key: "compare", label: "Compare", hint: "two people side by side" },
-    { key: "performance", label: "Speed", hint: "scaling & time complexity" },
+    { key: "performance", label: "Speed", hint: "measured build cost" },
   ];
 
   const selectTab = (key: string) => {
@@ -486,8 +488,8 @@ export default function Home() {
           </div>
           <dl className="readout">
             <div><dt>Region</dt><dd>1 Mb <span>real HPRC chr21</span></dd></div>
-            <div><dt>Baseline</dt><dd>5.5 min</dd></div>
-            <div><dt>Speedup</dt><dd>1.20×</dd></div>
+            <div><dt>Monolithic</dt><dd>2.0 min</dd></div>
+            <div><dt>3 chunks in parallel</dt><dd>1.6× sooner</dd></div>
           </dl>
           <p className="hero-note">
             <strong>Benchmark region:</strong> GRCh38 <span className="mono">chr21:20,000,000–21,000,000</span> (1 Mb, 5 haplotypes).
