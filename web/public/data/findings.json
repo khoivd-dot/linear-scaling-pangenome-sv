@@ -54,7 +54,7 @@
   {
    "step": "Tier 2",
    "question": "Why did large inputs come out under-collapsed?",
-   "finding": "A seqwish bug: PGGB v0.6.0 passes -B 10M unparsed, which under-collapses inputs over 1 Mb (22q11.2: 12.3 Mb vs 4.3 Mb of node sequence). A numeric -B fixes it.",
+   "finding": "A seqwish bug: the pinned PGGB build (commit 4225c6c) passes -B 10M unparsed, which under-collapses inputs over 1 Mb (22q11.2: 12.3 Mb vs 4.3 Mb of node sequence). A numeric -B fixes it.",
    "status": "done",
    "writeup": {
     "label": "TIER2.md",

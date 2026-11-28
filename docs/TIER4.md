@@ -201,7 +201,7 @@ only. Each build job then fetches just its own slice of every haplotype over
 HTTPS ([`chunk_fasta.py`](../pipeline/benchmark/tier4/chunk_fasta.py)); its
 output is byte-identical to `project_chunks.py` on a tested 17q21.31 chunk.
 
-**PGGB.** The pinned v0.6.0 image with the project's settings (`-p 90 -s 5000
+**PGGB.** The pinned image (pggb commit 4225c6c) with the project's settings (`-p 90 -s 5000
 -K 19 -k 29`, numeric seqwish `-B 100000000`), or `-p 98 -s 10000 -k 47` where
 marked, 4 threads, one build per runner. CPU time and peak memory come from GNU
 `time -v` around `pggb`, as in Tiers 1 to 3.

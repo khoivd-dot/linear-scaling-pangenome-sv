@@ -6,9 +6,9 @@ set -euo pipefail
 PY=${PY:-python3}; W=${W:-$PWD/work}; mkdir -p "$W/ref"; cd "$W/ref"
 for c in "$@"; do
   n=${c#chr}
-  [ -s $c.ens.fa ] || curl -sS -f --retry 4 https://ftp.ensembl.org/pub/release-112/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.$n.fa.gz | gunzip > $c.ens.fa
+  [ -s $c.ens.fa ] || curl -sS -f --retry 6 --retry-all-errors --retry-delay 10 https://ftp.ensembl.org/pub/release-112/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.chromosome.$n.fa.gz | gunzip > $c.ens.fa
   [ -s $c.fa ] || sed "1s/.*/>$c/" $c.ens.fa > $c.fa
   $PY -c "import pysam; pysam.faidx('$c.fa'); pysam.faidx('$c.ens.fa')"
 done
-[ -s segdups.bed ] || curl -sS -f --retry 4 https://ftp.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/GRCh38@all/SegmentalDuplications/GRCh38_segdups.bed.gz \
+[ -s segdups.bed ] || curl -sS -f --retry 6 --retry-all-errors --retry-delay 10 https://ftp.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/genome-stratifications/v3.3/GRCh38@all/SegmentalDuplications/GRCh38_segdups.bed.gz \
   | zcat | awk '$1=="chr17"||$1=="chr21"||$1=="chr22"' > segdups.bed

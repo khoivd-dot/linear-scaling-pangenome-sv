@@ -4,7 +4,7 @@ Reads the SAME config/pipeline.yaml parameters as gen_pggb_config.py and the
 DNAnexus applets. There must be exactly one PGGB parameter definition, so this
 script mirrors gen_pggb_config.load_config() and never invents its own flags.
 
-PGGB v0.6.0 flags (verified against pinned digest):
+PGGB flags of the pinned image, pggb commit 4225c6c (verified against the digest):
     -p = mapping identity (minimum_identity)
     -s = segment length (segment_length)
     -K = mash k-mer size (mash_kmer)
@@ -12,7 +12,7 @@ PGGB v0.6.0 flags (verified against pinned digest):
     -j = smoothxg path-jump max (path_jump_max)
     -e = smoothxg edge-jump max (edge_jump_max)
 
-NOTE: -w is NOT a valid PGGB v0.6.0 option.
+NOTE: -w is NOT a valid option in this PGGB build.
 
 Usage:
     python3 scripts/run_pggb.py input.fa output_dir [threads]

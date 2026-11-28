@@ -28,7 +28,7 @@ times that of three chunks and 5 times the monolithic run. These are single runs
   for base (checked).
 - **Stitch:** the existing overlap-aware stitch. `seam_position` now joins
   intervals that touch exactly (zero overlap) end to end; any gap still fails.
-- **PGGB:** pinned v0.6.0, `config/pipeline.yaml` parameters (-p 90 -s 5000
+- **PGGB:** pinned image (pggb commit 4225c6c), `config/pipeline.yaml` parameters (-p 90 -s 5000
   -K 19 -k 29), 4 threads per build, one build at a time on a 4 vCPU, 15 GB
   machine, 2026-11-23.
 - **Variants:** `vg deconstruct -P GRCh38 -a` on every graph, matched exactly

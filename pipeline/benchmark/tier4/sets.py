@@ -9,6 +9,8 @@
 SET arm   chr21:15-46 Mb, the first N haplotypes of haps_arm.tsv (N = 6, 20 or 40);
           mono + hotspots1m, plus windows1m when N <= 6
 SET hard  17q21.31 and 22q11.2 (Tier 3 regions), HG00673, HG00733, HG002 (N = 6); mono + windows0
+SET cuts  the same regions and haplotypes; mono + windows0 + sdsplit (extra cuts between paralogous copies
+          that share a chunk) + ctrl (the same number of extra cuts where they separate nothing); Tier 5
 """
 import csv
 import json
@@ -30,6 +32,8 @@ def haps(set_, n):
 def strategies(set_, n):
     if set_ == "arm":
         return [("arm", "mono"), ("arm", "hotspots1m")] + ([("arm", "windows1m")] if n <= 6 else [])
+    if set_ == "cuts":
+        return [(r, s) for r in ("r17", "r22") for s in ("mono", "windows0", "sdsplit", "ctrl")]
     return [(r, s) for r in ("r17", "r22") for s in ("mono", "windows0")]
 
 

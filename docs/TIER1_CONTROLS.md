@@ -24,7 +24,7 @@ are noise.
   release's minigraph-cactus GRCh38 chains and pulled with remote `samtools faidx`
   (no whole-assembly download), then aligned with minimap2 2.28 (`-x asm5 -c --eqx`).
   GRCh38 comes from Ensembl release 112. The contigs and coordinates match the pilot.
-- **PGGB:** pinned v0.6.0, `config/pipeline.yaml` parameters, 4 threads, one
+- **PGGB:** pinned image (pggb commit 4225c6c), `config/pipeline.yaml` parameters, 4 threads, one
   build at a time on a 4 vCPU, 15 GB machine. CPU time and peak memory now come
   from GNU `time -v` inside the container.
 - **Chunkings** (all projected onto every haplotype with `project_chunks.py`;

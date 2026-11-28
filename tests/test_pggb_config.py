@@ -24,7 +24,7 @@ def test_gen_pggb_config_parses():
 
 
 def test_transclose_batch_is_plain_number():
-    """seqwish -B must be a plain bp count: pggb v0.6.0 passes '10M' unconverted."""
+    """seqwish -B must be a plain bp count: the pinned pggb build (4225c6c) passes '10M' unconverted."""
     from gen_pggb_config import load_config
     cfg = load_config()
     assert isinstance(cfg["transclose_batch"], int) and cfg["transclose_batch"] >= 10_000_000
