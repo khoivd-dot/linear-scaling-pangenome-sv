@@ -1,7 +1,7 @@
 
 # Parallel Pangenome Graph Construction (Linear Scaling SV)
 
-[![Tests](https://img.shields.io/badge/tests-199%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-204%20passed-brightgreen)](tests/)
 [![Website](https://img.shields.io/badge/website-live-blue)](https://web-lemon-zeta-40.vercel.app)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-2ea44f)](https://collaborativebioinformatics.github.io/linear-scaling-pangenome-sv/)
 [![DNAnexus](https://img.shields.io/badge/DNAnexus-Group11__2026-orange)]()
@@ -20,7 +20,7 @@ cd linear-scaling-pangenome-sv
 pip install pyyaml pytest
 make check           # Verify your environment
 make demo            # Build synthetic graphs, stitch, export web data
-make test            # 199 tests
+make test            # 204 tests
 make web             # Open http://localhost:3000
 ```
 
@@ -62,6 +62,7 @@ These runs ask whether the place you cut a region changes the stitched graph. Al
 | Tier 1 | Was that the hotspots, or the 50 kb overlap the windows had? | The overlap. Zero-overlap cuts anywhere (fixed, shifted or 20 random sets) leave no extra sequence at the seams, and hotspot cuts score at the random median (F1 0.9985 vs 0.9984). | [TIER1_CONTROLS.md](docs/TIER1_CONTROLS.md) |
 | Tier 2 | Does that hold at more haplotypes and in segmental duplications? | Seams stay clean up to 40 haplotypes and fixed windows still match or beat hotspots. In 17q21.31 and 22q11.2, chunked graphs carry about 6.5% more sequence because paralogous copies land in different chunks. | [TIER2.md](docs/TIER2.md) |
 | Tier 3 | Which graph is right where they disagree, do duplication-aware groups help, and what happens at 10 Mb? | Scored against assembly-based truth calls, chunked graphs match monolithic on chr21 (F1 0.98) and beat it in 22q11.2 (0.96 vs 0.88), because monolithic PGGB merges paralogous LCR22 copies. Grouping the chunks that share a duplication undoes that gain. PGGB's human settings (`-p 98 -s 10k -k 47`) reduce the merging but chunked graphs still score higher (0.94-0.97 vs 0.86-0.93). Two replicates agree. At 10 Mb, 1 Mb chunks cost 1.22x the CPU and stay under 1 GB each, against 2.8 GB monolithic. | [TIER3.md](docs/TIER3.md) |
+| Tier 4 | Does chunking hold at chromosome scale, and against a curated truth set? | On 31 Mb of chr21 with 6 haplotypes, 29 hotspot chunks score the same as the monolithic graph (F1 0.976; HG002 0.980 against GIAB Q100) for 1.05x the CPU, at most 3.4 min and 0.97 GB per chunk against 49 min and 12.1 GB. At 20 and 40 haplotypes the monolithic build did not finish on a 16 GB runner, while chunks needed at most 1.5 and 3.0 GB; cost is 48 to 56 CPU-seconds per Mb per haplotype up to 20 haplotypes and 73 at 40. With HG002 added, chunked graphs still beat monolithic in 22q11.2 (0.965 vs 0.898) and 17q21.31 (0.80 vs 0.70) at `-p 90` and at `-p 98` (0.97 vs 0.94, 0.94 vs 0.85); against GIAB alone the 22q11.2 gap closes at `-p 98`. | [TIER4.md](docs/TIER4.md) |
 
 What to take from it:
 
@@ -75,7 +76,7 @@ What to take from it:
 
 ### Running the long experiments on GitHub
 
-The Tier 3 runs take hours. `.github/workflows/experiment.yml` runs them on a GitHub runner: open the Actions tab, pick **Experiment**, choose a stage (`tier3-e1e2`, `tier3-e4` or `tier3-scaling`) and a branch, and the JSON, TSV and log outputs come back as an artifact. The paper draft built from Tiers 1-3 is in [docs/paper/manuscript.md](docs/paper/manuscript.md).
+The Tier 3 runs take hours. `.github/workflows/experiment.yml` runs them on a GitHub runner: open the Actions tab, pick **Experiment**, choose a stage (`tier3-e1e2`, `tier3-e4` or `tier3-scaling`) and a branch, and the JSON, TSV and log outputs come back as an artifact. Tier 4 fans out instead: stage `tier4-arm` (input `n` = 6, 20 or 40) or `tier4-hard`, with `pggb` = `p90` or `p98` and a replicate label, runs one job per sample, one per chunk and one per graph, and commits a summary JSON to `docs/tier4_runs/` when the branch is a `claude/` branch. The paper draft built from Tiers 1-3 is in [docs/paper/manuscript.md](docs/paper/manuscript.md).
 
 ### haploblocks.org data and the AWS kit
 
@@ -101,7 +102,7 @@ To confirm that this parallel-and-stitch approach is actually a valid substitute
 
 For our pilot, we used four haplotype-resolved assemblies from HPRC Release 2 alongside GRCh38, restricted to a 1 Mb interval on chr21 (chr21:20,000,000–21,000,000) chosen as a representative smoke-test region. Because each haplotype assembly has its own independent coordinate system, we first used minimap2 to align each haplotype to GRCh38 and project the target interval's boundaries onto each haplotype's own sequence, filtering low-confidence mappings below a minimum mapping quality of 20 and a minimum query coverage of 0.90; samtools-based interval extraction and a custom multi-FASTA builder then produced the corresponding per-haplotype sequence for the interval. From this shared input, we built two graphs for comparison: a monolithic baseline, produced by running PGGB v0.6.0 once over the full interval across all haplotypes in a Dockerized environment, and a parallel graph, produced by partitioning the same interval into overlapping 400 kb windows (50 kb pairwise overlap) with a custom chunking script, extracting each haplotype's corresponding sub-sequence per chunk under a parent-locus constraint that rejects chunks spanning contig boundaries or ambiguous strand orientation, and running PGGB independently and in parallel on each chunk with identical parameters. Both the local synthetic pipeline and full-scale runs on real HPRC data are orchestrated the same way: a Makefile drives local execution, while a matching set of DNAnexus applets and shell scripts stage inputs and launch the equivalent chunked and baseline jobs on cloud compute for real-data runs.
 
-The independently built chunk graphs are represented and manipulated using a custom GFA data model and parser we implemented in-house, supporting the full GFA1 structure (headers, segments, links, paths, and the official W-line walk format) with round-trip parsing, serialization, and file I/O. Reassembly proceeds in two stages: a namespace-safe disjoint union that concatenates chunk graphs without merging shared content, used as a diagnostic baseline, and an overlap-aware stitching algorithm — the project's core methodological contribution — that identifies each haplotype's common subpath within a chunk-pair's overlap region and welds matching segment IDs across the boundary to produce a single continuous graph, with a boundary report tracking per-haplotype stitch success and base-level identity across each seam. The stitch is implemented and synthetic-validated (`make demo` yields an EQUIVALENT 5-component graph with 2/2 boundaries passing) and validated on HPRC release 2 data: on chr21:20–21 Mb with 5 haplotypes and zero-overlap chunks, every haplotype path matches the monolithic build and truvari F1 against the monolithic callset is about 0.998 (docs/TIER1_CONTROLS.md, docs/TIER2.md). For validation, we run vg deconstruct on both the baseline and reassembled graphs to call variants from each, then compare the two callsets with truvari to obtain precision, recall, and F1; independently, we generate an assembly-based linear-reference SV callset for the same haplotypes against GRCh38 using dipcall, giving us a comparison point outside the graph-based pipeline entirely. The full pipeline is covered by a pytest suite (199 tests spanning the GFA model, chunking, merging, interval mapping, and pipeline orchestration), and results are exported as compact JSON and served through a Next.js/React/TypeScript web dashboard for inspection.
+The independently built chunk graphs are represented and manipulated using a custom GFA data model and parser we implemented in-house, supporting the full GFA1 structure (headers, segments, links, paths, and the official W-line walk format) with round-trip parsing, serialization, and file I/O. Reassembly proceeds in two stages: a namespace-safe disjoint union that concatenates chunk graphs without merging shared content, used as a diagnostic baseline, and an overlap-aware stitching algorithm — the project's core methodological contribution — that identifies each haplotype's common subpath within a chunk-pair's overlap region and welds matching segment IDs across the boundary to produce a single continuous graph, with a boundary report tracking per-haplotype stitch success and base-level identity across each seam. The stitch is implemented and synthetic-validated (`make demo` yields an EQUIVALENT 5-component graph with 2/2 boundaries passing) and validated on HPRC release 2 data: on chr21:20–21 Mb with 5 haplotypes and zero-overlap chunks, every haplotype path matches the monolithic build and truvari F1 against the monolithic callset is about 0.998 (docs/TIER1_CONTROLS.md, docs/TIER2.md). For validation, we run vg deconstruct on both the baseline and reassembled graphs to call variants from each, then compare the two callsets with truvari to obtain precision, recall, and F1; independently, we generate an assembly-based linear-reference SV callset for the same haplotypes against GRCh38 using dipcall, giving us a comparison point outside the graph-based pipeline entirely. The full pipeline is covered by a pytest suite (204 tests spanning the GFA model, chunking, merging, interval mapping, and pipeline orchestration), and results are exported as compact JSON and served through a Next.js/React/TypeScript web dashboard for inspection.
 
 <img src="slides/Screenshot 2026-08-27 at 8.53.22 AM.png" width="800"><br>
 <img src="slides/Screenshot 2026-08-27 at 8.55.52 AM.png" width="800">
@@ -189,7 +190,7 @@ HPRC Release 2 (4 haplotypes + GRCh38)
 | Merge (disjoint union) | ✅ | Namespace-safe concatenation, diagnostic only |
 | Overlap-aware stitch | ✅ | `overlap_aware_stitch()`; `make demo` EQUIVALENT, 5 components |
 | Synthetic demo | ✅ | `make demo` generates full vertical slice |
-| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks — 199 pass |
+| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks, Tier 4 manifests and projection — 204 pass |
 | Web explorer | ✅ Interactive | Cytoscape.js graph, sample/haplotype selector, inspector, 4 tabs, real JSON loading |
 | Web dataset export | ✅ | `pipeline/export/build_web_dataset.py` — GFA → bounded compact JSON (no sequences) |
 | Web JSON guard | ✅ | `guard_no_genomic()` blocks GFA/FASTA/VCF/BAM/CRAM; `WEB_MAX_FILE_MB` size guard |
@@ -208,7 +209,7 @@ HPRC Release 2 (4 haplotypes + GRCh38)
 ```bash
 make check      # Check environment
 make demo       # Generate synthetic data, build GFAs, merge, export JSON
-make test       # Run 199 tests
+make test       # Run 204 tests
 make web        # Start Next.js dev server at http://localhost:3000
 ```
 
@@ -405,6 +406,8 @@ pangenome-parallel/
 |-- pipeline/benchmark/seam_metrics.py  # Extra sequence and errors by distance to a cut
 |-- pipeline/benchmark/tier2/      # Tier 2 scaling, hard-region and map scripts
 |-- pipeline/benchmark/tier3/      # Tier 3 truth set, scoring, SD groups, 10 Mb and replicate scripts
+|-- pipeline/benchmark/tier4/      # Tier 4 chr21 arm and HG002/GIAB kit: manifests, projection, fan-out build and scoring
+|-- docs/tier4_runs/               # One JSON per Tier 4 GitHub run, committed by the workflow
 |-- .github/workflows/experiment.yml  # Long benchmark runs on a GitHub runner (manual dispatch)
 |-- aws/                          # AWS Batch kit for haploblocks.org blocks
 |-- pipeline/baseline/build_baseline.sh  # Monolithic PGGB via Docker
@@ -419,7 +422,7 @@ pangenome-parallel/
 |-- scripts/prepare_reference.sh  # GRCh38 chr21 from DNAnexus/NCBI
 |-- scripts/setup_demo.py        # Synthetic end-to-end demo
 |-- scripts/check_environment.sh  # Tiered environment checker
-|-- tests/                       # 199 tests, pytest
+|-- tests/                       # 204 tests, pytest
 |-- web/                         # Next.js + React + TypeScript
 |-- docs/                        # Architecture, methods, DNAnexus, chunking experiments
 ```

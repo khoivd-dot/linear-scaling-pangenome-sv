@@ -131,6 +131,7 @@ def main(argv=None):
     ap.add_argument("--ref", required=True); ap.add_argument("--truth", required=True, help="prefix: PREFIX_SAMPLE_HAP.vcf/.bed")
     ap.add_argument("--haps", nargs="+", required=True); ap.add_argument("--segdups", required=True)
     ap.add_argument("--truvari", required=True)
+    ap.add_argument("--truth-sv", help="prefix for the SV (>= 50 bp) scoring; default --truth (Tier 4: GIAB stvar regions)")
     ap.add_argument("--bub", default="-l 0 -a 100000",
                     help="vcfbub options; the default is the PGGB pipeline's (sensitivity check: '-l 0 -a 10000')")
     a = ap.parse_args(argv)
@@ -151,7 +152,8 @@ def main(argv=None):
         for m in ("all", "sv"):
             od = os.path.join(work, f"truvari_{m}_{s}_{hp}")
             subprocess.run(["rm", "-rf", od])
-            parts = bench(a.truvari, base, comp, t + ".bed", od, m == "sv")
+            bed = f"{a.truth_sv}_{s}_{hp}.bed" if m == "sv" and a.truth_sv else t + ".bed"
+            parts = bench(a.truvari, base, comp, bed, od, m == "sv")
             result["haps"][h][m] = {z: prf(parts["tp-base"][z], parts["fn"][z], parts["tp-comp"][z], parts["fp"][z])
                                     for z in ("sd", "other")}
             for k in parts:
