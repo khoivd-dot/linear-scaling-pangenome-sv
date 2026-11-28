@@ -10,7 +10,7 @@ mkdir -p "$W/truth" "$W/truthsv" "$W/giab"; cd "$W"
 G=https://ftp.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG002_NA24385_son/v5.0q
 for t in smvar stvar; do
   for f in vcf.gz vcf.gz.tbi benchmark.bed; do
-    [ -s giab/$t.$f ] || curl -sS -f --retry 4 -o giab/$t.$f $G/HG002_GRCh38_v5.0q_$t.$f
+    [ -s giab/$t.$f ] || curl -sS -f --retry 6 --retry-all-errors --retry-delay 10 -o giab/$t.$f $G/HG002_GRCh38_v5.0q_$t.$f
   done
 done
 S3=https://s3-us-west-2.amazonaws.com/human-pangenomics/working
