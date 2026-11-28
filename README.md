@@ -130,6 +130,7 @@ Full editable deck: [`slides/methods_results_slide.pptx`](slides/methods_results
 | Tier 2 | [docs/TIER2.md](docs/TIER2.md) | [pipeline/benchmark/tier2/](pipeline/benchmark/tier2/) | [docs/tier2.json](docs/tier2.json) |
 | Tier 3 | [docs/TIER3.md](docs/TIER3.md) | [pipeline/benchmark/tier3/](pipeline/benchmark/tier3/) | [docs/tier3.json](docs/tier3.json), `docs/tier3_path_revisits_*.tsv` |
 | Tier 4 | [docs/TIER4.md](docs/TIER4.md) | [pipeline/benchmark/tier4/](pipeline/benchmark/tier4/) | [docs/tier4_runs/](docs/tier4_runs/) |
+| Tier 5 (running) | Write-up after the runs finish. Question: does an extra cut between two paralogous copies that share a chunk help, beyond a cut of the same size placed away from any paralog? | [pipeline/benchmark/tier5/paralog_cuts.py](pipeline/benchmark/tier5/paralog_cuts.py); manifests `r17/r22.{sdsplit,ctrl}.tsv` in `pipeline/benchmark/tier4/manifests/`; stage `tier4-cuts` | `docs/tier4_runs/tier4_cuts_*.json`, [docs/tier5/](docs/tier5/) (paralog pairs) |
 
 Each write-up lists the commands it was run with.
 
@@ -157,7 +158,7 @@ Each write-up lists the commands it was run with.
 
 ### Running the long experiments on GitHub
 
-The Tier 3 runs take hours. `.github/workflows/experiment.yml` runs them on a GitHub runner: open the Actions tab, pick **Experiment**, choose a stage (`tier3-e1e2`, `tier3-e4` or `tier3-scaling`) and a branch, and the JSON, TSV and log outputs come back as an artifact. Tier 4 fans out instead: stage `tier4-arm` (input `n` = 6, 20 or 40) or `tier4-hard`, with `pggb` = `p90` or `p98` and a replicate label, runs one job per sample, one per chunk and one per graph, and commits a summary JSON to `docs/tier4_runs/` when the branch is a `claude/` branch.
+The Tier 3 runs take hours. `.github/workflows/experiment.yml` runs them on a GitHub runner: open the Actions tab, pick **Experiment**, choose a stage (`tier3-e1e2`, `tier3-e4` or `tier3-scaling`) and a branch, and the JSON, TSV and log outputs come back as an artifact. Tier 4 fans out instead: stage `tier4-arm` (input `n` = 6, 20 or 40) or `tier4-hard`, with `pggb` = `p90` or `p98` and a replicate label, runs one job per sample, one per chunk and one per graph, and commits a summary JSON to `docs/tier4_runs/` when the branch is a `claude/` branch. Stage `tier4-cuts` (Tier 5) builds mono, windows0, sdsplit and ctrl for 17q21.31 and 22q11.2 at 6 haplotypes, with the same `pggb` and replicate inputs.
 
 ### haploblocks.org data and the AWS kit
 
