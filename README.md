@@ -1,7 +1,7 @@
 
 # Parallel Pangenome Graph Construction (Linear Scaling SV)
 
-[![Tests](https://img.shields.io/badge/tests-204%20passed-brightgreen)](tests/)
+[![Tests](https://img.shields.io/badge/tests-206%20passed-brightgreen)](tests/)
 [![Website](https://img.shields.io/badge/website-live-blue)](https://web-lemon-zeta-40.vercel.app)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-live-2ea44f)](https://collaborativebioinformatics.github.io/linear-scaling-pangenome-sv/)
 [![DNAnexus](https://img.shields.io/badge/DNAnexus-Group11__2026-orange)]()
@@ -102,7 +102,7 @@ To confirm that this parallel-and-stitch approach is actually a valid substitute
 
 For our pilot, we used four haplotype-resolved assemblies from HPRC Release 2 alongside GRCh38, restricted to a 1 Mb interval on chr21 (chr21:20,000,000–21,000,000) chosen as a representative smoke-test region. Because each haplotype assembly has its own independent coordinate system, we first used minimap2 to align each haplotype to GRCh38 and project the target interval's boundaries onto each haplotype's own sequence, filtering low-confidence mappings below a minimum mapping quality of 20 and a minimum query coverage of 0.90; samtools-based interval extraction and a custom multi-FASTA builder then produced the corresponding per-haplotype sequence for the interval. From this shared input, we built two graphs for comparison: a monolithic baseline, produced by running PGGB v0.6.0 once over the full interval across all haplotypes in a Dockerized environment, and a parallel graph, produced by partitioning the same interval into overlapping 400 kb windows (50 kb pairwise overlap) with a custom chunking script, extracting each haplotype's corresponding sub-sequence per chunk under a parent-locus constraint that rejects chunks spanning contig boundaries or ambiguous strand orientation, and running PGGB independently and in parallel on each chunk with identical parameters. Both the local synthetic pipeline and full-scale runs on real HPRC data are orchestrated the same way: a Makefile drives local execution, while a matching set of DNAnexus applets and shell scripts stage inputs and launch the equivalent chunked and baseline jobs on cloud compute for real-data runs.
 
-The independently built chunk graphs are represented and manipulated using a custom GFA data model and parser we implemented in-house, supporting the full GFA1 structure (headers, segments, links, paths, and the official W-line walk format) with round-trip parsing, serialization, and file I/O. Reassembly proceeds in two stages: a namespace-safe disjoint union that concatenates chunk graphs without merging shared content, used as a diagnostic baseline, and an overlap-aware stitching algorithm — the project's core methodological contribution — that identifies each haplotype's common subpath within a chunk-pair's overlap region and welds matching segment IDs across the boundary to produce a single continuous graph, with a boundary report tracking per-haplotype stitch success and base-level identity across each seam. The stitch is implemented and synthetic-validated (`make demo` yields an EQUIVALENT 5-component graph with 2/2 boundaries passing) and validated on HPRC release 2 data: on chr21:20–21 Mb with 5 haplotypes and zero-overlap chunks, every haplotype path matches the monolithic build and truvari F1 against the monolithic callset is about 0.998 (docs/TIER1_CONTROLS.md, docs/TIER2.md). For validation, we run vg deconstruct on both the baseline and reassembled graphs to call variants from each, then compare the two callsets with truvari to obtain precision, recall, and F1; independently, we generate an assembly-based linear-reference SV callset for the same haplotypes against GRCh38 using dipcall, giving us a comparison point outside the graph-based pipeline entirely. The full pipeline is covered by a pytest suite (204 tests spanning the GFA model, chunking, merging, interval mapping, and pipeline orchestration), and results are exported as compact JSON and served through a Next.js/React/TypeScript web dashboard for inspection.
+The independently built chunk graphs are represented and manipulated using a custom GFA data model and parser we implemented in-house, supporting the full GFA1 structure (headers, segments, links, paths, and the official W-line walk format) with round-trip parsing, serialization, and file I/O. Reassembly proceeds in two stages: a namespace-safe disjoint union that concatenates chunk graphs without merging shared content, used as a diagnostic baseline, and an overlap-aware stitching algorithm — the project's core methodological contribution — that identifies each haplotype's common subpath within a chunk-pair's overlap region and welds matching segment IDs across the boundary to produce a single continuous graph, with a boundary report tracking per-haplotype stitch success and base-level identity across each seam. The stitch is implemented and synthetic-validated (`make demo` yields an EQUIVALENT 5-component graph with 2/2 boundaries passing) and validated on HPRC release 2 data: on chr21:20–21 Mb with 5 haplotypes and zero-overlap chunks, every haplotype path matches the monolithic build and truvari F1 against the monolithic callset is about 0.998 (docs/TIER1_CONTROLS.md, docs/TIER2.md). For validation, we run vg deconstruct on both the baseline and reassembled graphs to call variants from each, then compare the two callsets with truvari to obtain precision, recall, and F1; independently, we generate an assembly-based linear-reference SV callset for the same haplotypes against GRCh38 using dipcall, giving us a comparison point outside the graph-based pipeline entirely. The full pipeline is covered by a pytest suite (206 tests spanning the GFA model, chunking, merging, interval mapping, and pipeline orchestration), and results are exported as compact JSON and served through a Next.js/React/TypeScript web dashboard for inspection.
 
 <img src="slides/Screenshot 2026-08-27 at 8.53.22 AM.png" width="800"><br>
 <img src="slides/Screenshot 2026-08-27 at 8.55.52 AM.png" width="800">
@@ -190,7 +190,7 @@ HPRC Release 2 (4 haplotypes + GRCh38)
 | Merge (disjoint union) | ✅ | Namespace-safe concatenation, diagnostic only |
 | Overlap-aware stitch | ✅ | `overlap_aware_stitch()`; `make demo` EQUIVALENT, 5 components |
 | Synthetic demo | ✅ | `make demo` generates full vertical slice |
-| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks, Tier 4 manifests and projection — 204 pass |
+| Tests | ✅ | GFA, chunking, merge (`tests/test_merge.py`), PGGB config, web dataset export, interval mapping, W-line, provenance, graph stats, hotspot chunks, cut projection, touching-chunk stitch, haploblocks, Tier 4 manifests and projection, site results — 206 pass |
 | Web explorer | ✅ Interactive | Cytoscape.js graph, sample/haplotype selector, inspector, 4 tabs, real JSON loading |
 | Web dataset export | ✅ | `pipeline/export/build_web_dataset.py` — GFA → bounded compact JSON (no sequences) |
 | Web JSON guard | ✅ | `guard_no_genomic()` blocks GFA/FASTA/VCF/BAM/CRAM; `WEB_MAX_FILE_MB` size guard |
@@ -224,8 +224,15 @@ bash dnanexus/run_pipeline.sh --upload  # Full pipeline
 
 ## Web Explorer
 
-The web explorer is a Next.js + React + TypeScript app using Cytoscape.js for
-interactive graph rendering.
+The site is a Next.js + React + TypeScript app. Since November 2026 it presents the
+Tier 1-4 results first: a genome-browser hero of the 31 Mb chr21 arm (29 chunks,
+peak memory chunked vs monolithic), Tier 4 cost and accuracy charts, the hard-region
+results at `-p 98`, the cut-placement controls, then the Cytoscape.js graph explorer.
+Every number on the page comes from `web/public/data/results.json`, which
+`python3 scripts/build_site_results.py` builds from `docs/tier*.json`,
+`docs/recombination_chunks_comparison.json` and `docs/tier4_runs/*.json`;
+`tests/test_site_results.py` fails if the file is stale. Rerun the script after
+adding results. Design notes: `web/DESIGN.md`.
 
 ```bash
 cd web

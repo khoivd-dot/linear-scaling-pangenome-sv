@@ -1,0 +1,722 @@
+{
+ "generated_by": "scripts/build_site_results.py",
+ "tier4": {
+  "runner": {
+   "vcpu": 4,
+   "ram_gb": 16
+  },
+  "arm": {
+   "chrom": "chr21",
+   "start": 15000000,
+   "end": 46000000,
+   "mb": 31
+  },
+  "arm_truth_svs": 1700,
+  "arm_sv_diff_calls": [
+   25,
+   40
+  ],
+  "max_concurrent_jobs": 20,
+  "giab_22q_coverage_pct": 70,
+  "scaling": [
+   {
+    "n": 6,
+    "mono": {
+     "status": "done",
+     "builds": 1,
+     "cpu_h": 2.75,
+     "longest_min": 48.8,
+     "peak_gb": 12.1,
+     "cpu_s_per_mb_hap": 53.2,
+     "f1_all": 0.976,
+     "f1_sv": 0.862,
+     "hg002_f1": [
+      0.98,
+      0.98
+     ]
+    },
+    "hotspots1m": {
+     "builds": 29,
+     "cpu_h": 2.88,
+     "longest_min": 3.4,
+     "peak_gb": 0.97,
+     "cpu_s_per_mb_hap": 55.7,
+     "f1_all": 0.976,
+     "f1_sv": 0.855,
+     "hg002_f1": [
+      0.98,
+      0.98
+     ],
+     "stitch_s": 6,
+     "seams_pass": 28,
+     "seams": 28,
+     "paths_identical": 7,
+     "paths": 7,
+     "cpu_vs_mono": 1.05
+    },
+    "windows1m": {
+     "builds": 31,
+     "cpu_h": 2.96,
+     "longest_min": 3.0,
+     "peak_gb": 0.97,
+     "cpu_s_per_mb_hap": 57.4,
+     "f1_all": 0.976,
+     "f1_sv": 0.875,
+     "hg002_f1": [
+      0.98,
+      0.98
+     ],
+     "stitch_s": 5,
+     "seams_pass": 30,
+     "seams": 30,
+     "paths_identical": 7,
+     "paths": 7,
+     "cpu_vs_mono": 1.08
+    }
+   },
+   {
+    "n": 20,
+    "mono": {
+     "status": "killed",
+     "after_min": 63,
+     "why": "killed by the kernel, out of memory (exit 137)"
+    },
+    "hotspots1m": {
+     "builds": 29,
+     "cpu_h": 8.31,
+     "longest_min": 8.2,
+     "peak_gb": 1.5,
+     "cpu_s_per_mb_hap": 48.3,
+     "f1_all": 0.972,
+     "f1_sv": 0.844,
+     "hg002_f1": [
+      0.975,
+      0.976
+     ],
+     "stitch_s": 16,
+     "seams_pass": 28,
+     "seams": 28,
+     "paths_identical": null,
+     "paths": null
+    }
+   },
+   {
+    "n": 40,
+    "mono": {
+     "status": "lost",
+     "after_min": 300,
+     "why": "runner stopped responding inside PGGB; GitHub kept no log"
+    },
+    "hotspots1m": {
+     "builds": 29,
+     "cpu_h": 25.11,
+     "longest_min": 24.6,
+     "peak_gb": 2.96,
+     "cpu_s_per_mb_hap": 72.9,
+     "f1_all": 0.969,
+     "f1_sv": 0.813,
+     "hg002_f1": [
+      0.972,
+      0.973
+     ],
+     "stitch_s": 34,
+     "seams_pass": 28,
+     "seams": 28,
+     "paths_identical": null,
+     "paths": null
+    }
+   }
+  ],
+  "chunks_n6": [
+   {
+    "start": 15000000,
+    "end": 16061946,
+    "wall_min": 2.35,
+    "peak_gb": 0.97
+   },
+   {
+    "start": 16061946,
+    "end": 17088184,
+    "wall_min": 1.82,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 17088184,
+    "end": 18108212,
+    "wall_min": 2.01,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 18108212,
+    "end": 19162469,
+    "wall_min": 2.55,
+    "peak_gb": 0.972
+   },
+   {
+    "start": 19162469,
+    "end": 20271080,
+    "wall_min": 3.09,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 20271080,
+    "end": 21442251,
+    "wall_min": 2.12,
+    "peak_gb": 0.973
+   },
+   {
+    "start": 21442251,
+    "end": 22473648,
+    "wall_min": 2.46,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 22473648,
+    "end": 23530225,
+    "wall_min": 2.43,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 23530225,
+    "end": 24568465,
+    "wall_min": 2.48,
+    "peak_gb": 0.972
+   },
+   {
+    "start": 24568465,
+    "end": 25625354,
+    "wall_min": 2.86,
+    "peak_gb": 0.97
+   },
+   {
+    "start": 25625354,
+    "end": 26652378,
+    "wall_min": 1.85,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 26652378,
+    "end": 27753612,
+    "wall_min": 2.71,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 27753612,
+    "end": 28833184,
+    "wall_min": 2.45,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 28833184,
+    "end": 29878470,
+    "wall_min": 2.55,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 29878470,
+    "end": 30916855,
+    "wall_min": 2.84,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 30916855,
+    "end": 31960321,
+    "wall_min": 1.96,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 31960321,
+    "end": 32988348,
+    "wall_min": 2.78,
+    "peak_gb": 0.97
+   },
+   {
+    "start": 32988348,
+    "end": 34003815,
+    "wall_min": 2.2,
+    "peak_gb": 0.496
+   },
+   {
+    "start": 34003815,
+    "end": 35042797,
+    "wall_min": 1.78,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 35042797,
+    "end": 36087866,
+    "wall_min": 2.53,
+    "peak_gb": 0.97
+   },
+   {
+    "start": 36087866,
+    "end": 37232269,
+    "wall_min": 3.21,
+    "peak_gb": 0.973
+   },
+   {
+    "start": 37232269,
+    "end": 38254499,
+    "wall_min": 2.86,
+    "peak_gb": 0.971
+   },
+   {
+    "start": 38254499,
+    "end": 39347101,
+    "wall_min": 2.0,
+    "peak_gb": 0.972
+   },
+   {
+    "start": 39347101,
+    "end": 40388490,
+    "wall_min": 2.25,
+    "peak_gb": 0.815
+   },
+   {
+    "start": 40388490,
+    "end": 41425130,
+    "wall_min": 2.64,
+    "peak_gb": 0.972
+   },
+   {
+    "start": 41425130,
+    "end": 42457854,
+    "wall_min": 2.68,
+    "peak_gb": 0.564
+   },
+   {
+    "start": 42457854,
+    "end": 43716494,
+    "wall_min": 2.35,
+    "peak_gb": 0.529
+   },
+   {
+    "start": 43716494,
+    "end": 44726008,
+    "wall_min": 2.03,
+    "peak_gb": 0.444
+   },
+   {
+    "start": 44726008,
+    "end": 46000000,
+    "wall_min": 3.4,
+    "peak_gb": 0.538
+   }
+  ],
+  "hard": [
+   {
+    "region": "22q11.2",
+    "pggb": "-p 90",
+    "mono": {
+     "f1_a10k": [
+      0.914,
+      0.914
+     ],
+     "f1_a100k": [
+      0.898,
+      0.898
+     ],
+     "f1_sd_a10k": [
+      0.789,
+      0.787
+     ],
+     "peak_gb": 1.94,
+     "ref_revisit_pct": 10,
+     "hg002_f1": [
+      0.943,
+      0.976
+     ]
+    },
+    "chunked": {
+     "f1_a10k": [
+      0.964,
+      0.965
+     ],
+     "f1_a100k": [
+      0.964,
+      0.965
+     ],
+     "f1_sd_a10k": [
+      0.935,
+      0.936
+     ],
+     "peak_gb": 1.04,
+     "ref_revisit_pct": 2,
+     "hg002_f1": [
+      0.982,
+      0.982
+     ]
+    }
+   },
+   {
+    "region": "22q11.2",
+    "pggb": "-p 98",
+    "mono": {
+     "f1_a10k": [
+      0.944,
+      0.943
+     ],
+     "f1_a100k": [
+      0.189,
+      0.189
+     ],
+     "f1_sd_a10k": [
+      0.869,
+      0.868
+     ],
+     "peak_gb": 1.89,
+     "ref_revisit_pct": 9,
+     "hg002_f1": [
+      0.982,
+      0.982
+     ]
+    },
+    "chunked": {
+     "f1_a10k": [
+      0.968,
+      0.968
+     ],
+     "f1_a100k": [
+      0.966,
+      0.966
+     ],
+     "f1_sd_a10k": [
+      0.947,
+      0.946
+     ],
+     "peak_gb": 1.0,
+     "ref_revisit_pct": 2,
+     "hg002_f1": [
+      0.982,
+      0.982
+     ]
+    }
+   },
+   {
+    "region": "17q21.31",
+    "pggb": "-p 90",
+    "mono": {
+     "f1_a10k": [
+      0.694,
+      0.704
+     ],
+     "f1_a100k": [
+      0.694,
+      0.704
+     ],
+     "f1_sd_a10k": [
+      0.565,
+      0.579
+     ],
+     "peak_gb": 0.6,
+     "ref_revisit_pct": 17
+    },
+    "chunked": {
+     "f1_a10k": [
+      0.802,
+      0.802
+     ],
+     "f1_a100k": [
+      0.802,
+      0.802
+     ],
+     "f1_sd_a10k": [
+      0.726,
+      0.725
+     ],
+     "peak_gb": 0.97,
+     "ref_revisit_pct": 8
+    }
+   },
+   {
+    "region": "17q21.31",
+    "pggb": "-p 98",
+    "mono": {
+     "f1_a10k": [
+      0.857,
+      0.854
+     ],
+     "f1_a100k": [
+      0.856,
+      0.853
+     ],
+     "f1_sd_a10k": [
+      0.789,
+      0.785
+     ],
+     "peak_gb": 0.59,
+     "ref_revisit_pct": 15
+    },
+    "chunked": {
+     "f1_a10k": [
+      0.939,
+      0.938
+     ],
+     "f1_a100k": [
+      0.939,
+      0.938
+     ],
+     "f1_sd_a10k": [
+      0.919,
+      0.917
+     ],
+     "peak_gb": 0.97,
+     "ref_revisit_pct": 7
+    }
+   }
+  ]
+ },
+ "tier3": {
+  "regions": [
+   {
+    "key": "r21",
+    "name": "chr21 pilot",
+    "locus": "chr21:20,000,000-21,000,000",
+    "mono": {
+     "f1": [
+      0.981,
+      0.981
+     ],
+     "revisit_pct": [
+      0.0,
+      0.0
+     ],
+     "sv_f1": [
+      0.94,
+      0.94
+     ]
+    },
+    "chunked": {
+     "f1": [
+      0.981,
+      0.981
+     ],
+     "revisit_pct": [
+      0.0,
+      0.0
+     ],
+     "sv_f1": [
+      0.94,
+      0.94
+     ]
+    }
+   },
+   {
+    "key": "r17",
+    "name": "17q21.31",
+    "locus": "chr17:45,400,000-46,600,000",
+    "mono": {
+     "f1": [
+      0.743,
+      0.749
+     ],
+     "revisit_pct": [
+      10.5,
+      10.5
+     ],
+     "sv_f1": [
+      0.9,
+      0.9
+     ],
+     "f1_a10k": 0.743,
+     "f1_sd": 0.627
+    },
+    "chunked": {
+     "f1": [
+      0.804,
+      0.802
+     ],
+     "revisit_pct": [
+      4.4,
+      4.4
+     ],
+     "sv_f1": [
+      0.72,
+      0.72
+     ],
+     "f1_a10k": 0.804,
+     "f1_sd": 0.72
+    },
+    "sdgroup": {
+     "f1": [
+      0.75,
+      0.75
+     ],
+     "revisit_pct": [
+      13.8,
+      13.8
+     ],
+     "sv_f1": [
+      0.71,
+      0.71
+     ],
+     "f1_a10k": 0.75,
+     "f1_sd": 0.637
+    }
+   },
+   {
+    "key": "r22",
+    "name": "22q11.2",
+    "locus": "chr22:18,600,000-21,500,000",
+    "mono": {
+     "f1": [
+      0.88,
+      0.88
+     ],
+     "revisit_pct": [
+      9.0,
+      9.0
+     ],
+     "sv_f1": [
+      0.76,
+      0.75
+     ],
+     "f1_a10k": 0.903,
+     "f1_sd": 0.719
+    },
+    "chunked": {
+     "f1": [
+      0.962,
+      0.962
+     ],
+     "revisit_pct": [
+      2.4,
+      2.4
+     ],
+     "sv_f1": [
+      0.82,
+      0.81
+     ],
+     "f1_a10k": 0.96,
+     "f1_sd": 0.937
+    },
+    "sdgroup": {
+     "f1": [
+      0.889,
+      0.889
+     ],
+     "revisit_pct": [
+      11.5,
+      11.5
+     ],
+     "sv_f1": [
+      0.79,
+      0.77
+     ],
+     "f1_a10k": 0.891,
+     "f1_sd": 0.76
+    }
+   }
+  ],
+  "r17_truth_svs": 9,
+  "vcfbub_trap": [
+   {
+    "region": "17q21.31",
+    "mono_a100k": 0.468,
+    "mono_a10k": 0.862,
+    "chunked_a10k": 0.941
+   },
+   {
+    "region": "22q11.2",
+    "mono_a100k": 0.24,
+    "mono_a10k": 0.929,
+    "chunked_a10k": 0.965
+   }
+  ],
+  "e4_10mb": {
+   "mono_wall_s": 582,
+   "mono_peak_gb": 2.84,
+   "chunk_longest_s": 75,
+   "chunk_peak_mb": 969,
+   "chunks": 25
+  }
+ },
+ "where_to_cut": {
+  "pilot": {
+   "windows_extra_bp": 4723,
+   "hotspots_extra_bp": 14,
+   "overlap_kb": 50
+  },
+  "tier1": {
+   "f1": {
+    "windows": [
+     0.998,
+     0.9975,
+     0.9975
+    ],
+    "windows0": [
+     0.9993,
+     0.9987,
+     0.9988
+    ],
+    "hotspots300": [
+     0.9985,
+     0.998,
+     0.9976
+    ]
+   },
+   "near_cut_bp": {
+    "windows": [
+     4723,
+     4723,
+     4723
+    ],
+    "windows0": [
+     0,
+     0,
+     0
+    ],
+    "hotspots300": [
+     0,
+     0,
+     0
+    ]
+   },
+   "random_f1": [
+    0.996,
+    0.9965,
+    0.9973,
+    0.9975,
+    0.9975,
+    0.9979,
+    0.998,
+    0.9981,
+    0.9981,
+    0.9983,
+    0.9985,
+    0.9987,
+    0.9988,
+    0.9991,
+    0.9991,
+    0.9992,
+    0.9995,
+    0.9995,
+    0.9996,
+    0.9999
+   ],
+   "random_f1_median": 0.9984,
+   "mono_vs_mono_f1": [
+    0.9995,
+    0.9995,
+    1.0
+   ],
+   "mono_drift_nodes": 9,
+   "mono_drift_bp": 47
+  },
+  "tier2": {
+   "seqwish_bug_bp": 12455138,
+   "seqwish_fixed_bp": 4366871,
+   "n40": {
+    "mono_cpu_s": 1775,
+    "chunk_cpu_s": 1790,
+    "longest_vs_mono_pct": 40,
+    "mono_peak_gb": 2.34,
+    "chunk_peak_mb": 970
+   },
+   "hard_mono_vs_mono_f1": [
+    0.983,
+    0.973
+   ]
+  }
+ }
+}
